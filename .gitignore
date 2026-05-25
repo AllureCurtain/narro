@@ -1,0 +1,12 @@
+.next/
+node_modules/
+dist/
+coverage/
+*.log
+tsconfig.tsbuildinfo
+.env*
+!.env.example
+data/*.db
+data/*.db-*
+debug-narro-*.png
+utputFormat

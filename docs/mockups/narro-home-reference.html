@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Narro Home Reference</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #eef2f7;
+      color: #162033;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .page {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    .intro {
+      margin-bottom: 18px;
+    }
+
+    .intro h1 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .intro p {
+      margin: 0;
+      max-width: 860px;
+      color: #526071;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .canvas {
+      border: 1px solid rgba(120, 132, 158, 0.28);
+      border-radius: 14px;
+      overflow: hidden;
+      background: #f5f7fa;
+      box-shadow: 0 20px 60px rgba(22, 31, 51, 0.1);
+    }
+
+    .appbar {
+      min-height: 48px;
+      background: #101827;
+      color: #f8fafc;
+      display: grid;
+      grid-template-columns: 160px minmax(0, 1fr) 260px;
+      align-items: center;
+      gap: 16px;
+      padding: 10px 18px;
+      font-size: 12px;
+    }
+
+    .brand {
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .search {
+      min-height: 28px;
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.12);
+      display: flex;
+      align-items: center;
+      padding: 6px 11px;
+      color: rgba(255, 255, 255, 0.72);
+      min-width: 0;
+    }
+
+    .sync {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      color: rgba(255, 255, 255, 0.7);
+      white-space: nowrap;
+    }
+
+    .body {
+      display: grid;
+      grid-template-columns: 178px minmax(0, 1fr) 304px;
+      min-height: 560px;
+    }
+
+    .left,
+    .right {
+      padding: 14px;
+      background: #eef2f7;
+      border-color: rgba(120, 132, 158, 0.24);
+    }
+
+    .left {
+      border-right: 1px solid rgba(120, 132, 158, 0.24);
+    }
+
+    .right {
+      border-left: 1px solid rgba(120, 132, 158, 0.24);
+    }
+
+    .main {
+      padding: 16px;
+      min-width: 0;
+    }
+
+    .section-title {
+      font-size: 10px;
+      color: #64748b;
+      text-transform: uppercase;
+      margin: 0 0 8px;
+      letter-spacing: .08em;
+    }
+
+    .source {
+      min-height: 34px;
+      border-radius: 8px;
+      background: #ffffff;
+      border: 1px solid rgba(120, 132, 158, 0.22);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      padding: 8px 10px;
+      gap: 8px;
+      font-size: 11px;
+      color: #334155;
+    }
+
+    .source::before {
+      content: "";
+      flex: 0 0 auto;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #3b82f6;
+    }
+
+    .lens-active {
+      border-color: rgba(43, 138, 110, 0.4);
+      background: #ecfdf5;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-bottom: 12px;
+    }
+
+    .chip {
+      min-height: 26px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: #e8edf5;
+      color: #334155;
+      font-size: 11px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .chip.active {
+      background: #172033;
+      color: #f8fafc;
+    }
+
+    .digest {
+      border-radius: 10px;
+      background: #122033;
+      color: #eef2ff;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .digest h2 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      letter-spacing: 0;
+    }
+
+    .digest p {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.55;
+      color: rgba(238, 242, 255, 0.78);
+    }
+
+    .feed-card {
+      background: #ffffff;
+      border: 1px solid rgba(120, 132, 158, 0.22);
+      border-radius: 10px;
+      padding: 13px;
+      margin-bottom: 10px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+    }
+
+    .feed-card h3 {
+      margin: 0 0 6px;
+      font-size: 14px;
+      color: #162033;
+      letter-spacing: 0;
+    }
+
+    .feed-card p {
+      margin: 0;
+      color: #64748b;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .badge {
+      min-height: 22px;
+      border-radius: 999px;
+      padding: 5px 8px;
+      background: #eef4ff;
+      color: #315fbc;
+      font-size: 10px;
+      display: inline-flex;
+      align-items: center;
+      white-space: nowrap;
+    }
+
+    .agent-card {
+      border-radius: 10px;
+      border: 1px solid rgba(120, 132, 158, 0.22);
+      background: #ffffff;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+
+    .agent-card.primary {
+      background: #0f766e;
+      color: #f0fdfa;
+      border-color: rgba(15, 118, 110, 0.4);
+    }
+
+    .agent-card h3 {
+      margin: 0 0 7px;
+      font-size: 13px;
+      letter-spacing: 0;
+    }
+
+    .agent-card p {
+      margin: 0;
+      color: #64748b;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .agent-card.primary p {
+      color: rgba(240, 253, 250, 0.82);
+    }
+
+    .action {
+      margin-top: 10px;
+      min-height: 28px;
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.18);
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 9px;
+      font-size: 11px;
+    }
+
+    .note {
+      margin-top: 18px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      color: #7c2d12;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    @media (max-width: 1050px) {
+      .appbar {
+        grid-template-columns: 120px minmax(0, 1fr);
+      }
+
+      .sync {
+        display: none;
+      }
+
+      .body {
+        grid-template-columns: 150px minmax(0, 1fr);
+      }
+
+      .right {
+        grid-column: 1 / -1;
+        border-left: 0;
+        border-top: 1px solid rgba(120, 132, 158, 0.24);
+      }
+    }
+
+    @media (max-width: 760px) {
+      .page {
+        padding: 16px;
+      }
+
+      .appbar,
+      .body {
+        display: block;
+      }
+
+      .brand {
+        margin-bottom: 8px;
+      }
+
+      .search {
+        width: 100%;
+      }
+
+      .left,
+      .right {
+        border: 0;
+        border-top: 1px solid rgba(120, 132, 158, 0.24);
+      }
+
+      .feed-card {
+        grid-template-columns: 1fr;
+      }
+
+      .badge {
+        width: max-content;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="intro">
+      <h1>Narro 首页参考设计</h1>
+      <p>最终方向：保留 A 的实时信息流阅读体验，同时引入 Lens 视角和右侧 agent 任务层。M0 实现时应参考这个信息结构和视觉密度，但不要求像素级复刻。</p>
+    </section>
+
+    <div class="canvas">
+      <div class="appbar">
+        <div class="brand">Narro</div>
+        <div class="search">搜索信息、实体、事件，或直接问：最近 AI IDE 有什么变化？</div>
+        <div class="sync"><span>12 个源刚更新</span><span>下一轮 4:32</span></div>
+      </div>
+
+      <div class="body">
+        <aside class="left">
+          <p class="section-title">信息源</p>
+          <div class="source">全部来源</div>
+          <div class="source">RSS / 博客</div>
+          <div class="source">GitHub</div>
+          <div class="source">产品更新</div>
+          <div class="source">新闻站点</div>
+          <p class="section-title" style="margin-top:18px">视角</p>
+          <div class="source lens-active">AI 编程工具</div>
+          <div class="source">投资融资</div>
+          <div class="source">技术趋势</div>
+        </aside>
+
+        <main class="main">
+          <div class="chips">
+            <span class="chip active">最新</span>
+            <span class="chip">重要</span>
+            <span class="chip">事件</span>
+            <span class="chip">产品</span>
+            <span class="chip">融资</span>
+            <span class="chip">待读</span>
+          </div>
+
+          <section class="digest">
+            <h2>今日智能摘要</h2>
+            <p>过去 6 小时内，AI 编程工具相关信息集中在模型上下文扩展、IDE 插件竞争和企业版定价变化。系统已合并 17 条相似报道，留下 5 个值得看的事件。</p>
+          </section>
+
+          <article class="feed-card">
+            <div>
+              <h3>Cursor 企业版更新引发团队权限讨论</h3>
+              <p>来自产品博客、社区讨论和两篇新闻报道。agent 已合并为同一事件，并标记为“需持续跟踪”。</p>
+            </div>
+            <span class="badge">事件组 4 条</span>
+          </article>
+
+          <article class="feed-card">
+            <div>
+              <h3>Claude Code 相关开源工具一周内增长明显</h3>
+              <p>GitHub 趋势、Hacker News 和技术博客共同出现。系统判断不是单条新闻，而是一个趋势信号。</p>
+            </div>
+            <span class="badge">趋势</span>
+          </article>
+
+          <article class="feed-card">
+            <div>
+              <h3>Windsurf 发布新协作功能</h3>
+              <p>产品更新日志已抓取，摘要、原文链接和竞品对比已生成，可加入“AI IDE 竞品周报”。</p>
+            </div>
+            <span class="badge">产品</span>
+          </article>
+        </main>
+
+        <aside class="right">
+          <p class="section-title">Agent 任务</p>
+          <section class="agent-card primary">
+            <h3>生成今日简报</h3>
+            <p>基于当前视角，把今日重要事件整理成 5 分钟可读版本。</p>
+            <span class="action">运行</span>
+          </section>
+
+          <section class="agent-card">
+            <h3>创建持续追踪</h3>
+            <p>把“AI 编程工具”保存为监控任务，每天自动更新变化。</p>
+          </section>
+
+          <section class="agent-card">
+            <h3>解释这个事件</h3>
+            <p>选中任意新闻后，agent 自动补背景、相关实体和影响判断。</p>
+          </section>
+
+          <section class="agent-card">
+            <h3>发现新信息源</h3>
+            <p>根据你经常看的主题，推荐新的 RSS、博客或项目更新源。</p>
+          </section>
+        </aside>
+      </div>
+    </div>
+
+    <div class="note">
+      设计结论：Narro 第一版不是聊天机器人，也不是普通 RSS 阅读器。它先提供强阅读体验，再把信息流加工成事件、趋势、追踪任务和简报。
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,50 @@
+{
+  "name": "narro",
+  "version": "1.0.0",
+  "description": "Narro 是一个个人信息中枢：先做成每天愿意打开看的实时信息流，再逐步升级成能总结、追踪、解释、生成简报的 agent 型情报工作台。",
+  "packageManager": "pnpm@11.2.2",
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": ">=11.0.0"
+  },
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "db:reset": "node -e \"require('node:fs').rmSync('data/narro.db',{force:true})\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "@libsql/client": "^0.17.3",
+    "@phosphor-icons/react": "^2.1.10",
+    "drizzle-orm": "^0.45.2",
+    "next": "^16.2.6",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^25.9.1",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^16.2.6",
+    "jsdom": "^29.1.1",
+    "playwright-core": "^1.60.0",
+    "tailwindcss": "^4.3.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.7"
+  }
+}
