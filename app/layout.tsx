@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { AutoRefresh } from "@/components/app-shell/auto-refresh";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -47,7 +48,10 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <head>{extensionErrorFilter}</head>
-      <body>{children}</body>
+      <body>
+        <AutoRefresh intervalMinutes={15} />
+        {children}
+      </body>
     </html>
   );
 }

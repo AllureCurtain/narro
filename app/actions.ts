@@ -7,16 +7,20 @@ import {
   createSource,
   deleteLens,
   importSourcesFromOpml,
+  listItemsWithoutAiSummary,
+  listSettings,
   markItemsReadStatus,
   prepareDatabase,
   runAgentTask,
   saveSetting,
   testLlmConnection,
+  updateItemAiSummary,
   updateItemState,
   updateSourceEnabled
 } from "@/lib/db/repositories";
 import { getDatabase } from "@/lib/db/client";
 import { refreshDueSources, refreshEnabledSources, refreshSource } from "@/lib/ingestion/refresh";
+import { summarizeItemsBatch } from "@/lib/agent/summarize";
 
 export async function refreshEnabledSourcesAction(): Promise<RefreshActionState> {
   const database = getDatabase();
@@ -145,6 +149,31 @@ export async function testLlmConnectionAction() {
   const database = getDatabase();
   await prepareDatabase(database);
   await testLlmConnection(database);
+  revalidatePath("/");
+}
+
+export async function summarizeUnsummarizedItemsAction() {
+  const database = getDatabase();
+  await prepareDatabase(database);
+
+  const items = await listItemsWithoutAiSummary(database, 20);
+  if (items.length === 0) {
+    revalidatePath("/");
+    return;
+  }
+
+  const settings = await listSettings(database);
+  const llmSettings = {
+    provider: settings["llm.provider"],
+    baseUrl: settings["llm.baseUrl"],
+    model: settings["llm.model"]
+  };
+
+  const summaries = await summarizeItemsBatch(items, { settings: llmSettings, batchSize: 5 });
+  for (const [itemId, summary] of summaries) {
+    if (summary) await updateItemAiSummary(database, itemId, summary);
+  }
+
   revalidatePath("/");
 }
 

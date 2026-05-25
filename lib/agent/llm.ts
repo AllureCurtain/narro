@@ -12,11 +12,13 @@ export interface LlmRunOptions {
   fetcher?: typeof fetch;
 }
 
+export type PromptTaskType = AgentTaskType | "summarize_item" | "batch_summarize";
+
 export interface AgentPromptInput {
   items: Item[];
   selectedItem: Item | null;
   taskInput: string;
-  type: AgentTaskType;
+  type: PromptTaskType;
 }
 
 export interface LlmResult {
@@ -90,6 +92,20 @@ function buildPrompt(input: AgentPromptInput) {
       return `${index + 1}. ${item.title}\n来源: ${source}\n摘要: ${item.summary}\n实体: ${item.entities.join(", ") || "无"}`;
     })
     .join("\n\n");
+
+  if (input.type === "summarize_item") {
+    const item = input.selectedItem ?? input.items[0];
+    return item
+      ? `请用一句中文总结这条信息的核心要点（不超过80字）。\n标题: ${item.title}\n摘要: ${item.summary}`
+      : "";
+  }
+
+  if (input.type === "batch_summarize") {
+    const batchLines = input.items
+      .map((item, index) => `${index + 1}. ${item.title}\n${item.summary}`)
+      .join("\n\n");
+    return `请为以下每条信息各生成一句中文摘要（不超过80字），按编号逐行输出。\n\n${batchLines}`;
+  }
 
   if (input.type === "explain_item") {
     const item = input.selectedItem ?? input.items[0];

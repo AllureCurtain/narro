@@ -5,12 +5,16 @@ import {
   getSourcePreset,
   insertItemIfNew,
   listRealSources,
+  listSettings,
   markSourceRefreshFailure,
   markSourceRefreshSuccess,
-  recordRefreshLog
+  recordRefreshLog,
+  updateItemAiSummary
 } from "@/lib/db/repositories";
 import { fetchJsonApiEntries } from "@/lib/sources/api-adapter";
 import { fetchSourcePreview, normalizeRawEntry } from "@/lib/sources/feed-adapter";
+import { generateItemSummary } from "@/lib/agent/summarize";
+import type { Item } from "@/lib/domain";
 
 const highSignalRefreshOrder = [
   "hacker-news-rss",
@@ -104,6 +108,7 @@ export async function refreshSource(
   }
 
   let insertedCount = 0;
+  const newItems: Item[] = [];
   for (const entry of preview.entries) {
     const item = normalizeRawEntry(entry, source, {
       fetchedAt: preview.fetchedAt,
@@ -111,7 +116,10 @@ export async function refreshSource(
       entities: sourcePreset.entities
     });
     const inserted = await insertItemIfNew(database, item, entry.externalId);
-    if (inserted) insertedCount += 1;
+    if (inserted) {
+      insertedCount += 1;
+      newItems.push(item);
+    }
   }
 
   const latencyMs = Date.now() - startedAt;
@@ -123,6 +131,8 @@ export async function refreshSource(
     ok: true,
     sourceId
   });
+
+  await generateSummariesForNewItems(database, newItems);
 
   return {
     sourceId,
@@ -245,4 +255,26 @@ async function runWithConcurrency<T, R>(
   await Promise.all(Array.from({ length: concurrency }, runWorker));
 
   return results;
+}
+
+async function generateSummariesForNewItems(database: NarroDatabase, items: Item[]) {
+  if (items.length === 0) return;
+
+  try {
+    const settings = await listSettings(database);
+    const llmSettings = {
+      provider: settings["llm.provider"],
+      baseUrl: settings["llm.baseUrl"],
+      model: settings["llm.model"]
+    };
+
+    for (const item of items.slice(0, 5)) {
+      const summary = await generateItemSummary(item, { settings: llmSettings });
+      if (summary) {
+        await updateItemAiSummary(database, item.id, summary);
+      }
+    }
+  } catch {
+    // LLM failures should not break the refresh flow
+  }
 }

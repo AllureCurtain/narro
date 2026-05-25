@@ -320,6 +320,23 @@ export async function insertItemIfNew(database: NarroDatabase, item: Item, exter
   return result.rowsAffected > 0;
 }
 
+export async function updateItemAiSummary(database: NarroDatabase, itemId: string, aiSummary: string) {
+  await database.db
+    .update(itemsTable)
+    .set({ aiSummary, updatedAt: new Date().toISOString() })
+    .where(eq(itemsTable.id, itemId));
+}
+
+export async function listItemsWithoutAiSummary(database: NarroDatabase, limit = 20): Promise<Item[]> {
+  const rows = await database.db
+    .select()
+    .from(itemsTable)
+    .where(eq(itemsTable.aiSummary, ""))
+    .orderBy(desc(itemsTable.publishedAt))
+    .limit(limit);
+  return rows.map(itemFromRow);
+}
+
 export async function markSourceRefreshSuccess(database: NarroDatabase, sourceId: string, fetchedAt: string, latencyMs = 0) {
   await database.db
     .update(sourcesTable)
@@ -793,8 +810,10 @@ function filterItemsForLens(items: Item[], lens: Lens, sourceById: Map<string, S
     const keywordMatches =
       lens.keywordFilters.length === 0 || lens.keywordFilters.some((keyword) => text.includes(keyword.toLowerCase()));
     const entityMatches =
-      lens.entityFilters.length === 0 || lens.entityFilters.some((entity) => item.entities.includes(entity));
-    const tagMatches = lens.tagFilters.length === 0 || lens.tagFilters.some((tag) => item.tags.includes(tag));
+      lens.entityFilters.length === 0 ||
+      lens.entityFilters.some((entity) => item.entities.some((e) => e.toLowerCase().includes(entity.toLowerCase())));
+    const tagMatches =
+      lens.tagFilters.length === 0 || lens.tagFilters.some((tag) => item.tags.some((t) => t.toLowerCase() === tag.toLowerCase()));
 
     return groupMatches && keywordMatches && entityMatches && tagMatches;
   });
@@ -814,6 +833,11 @@ function searchableText(item: Item): string {
 function sortItemsForLens(items: Item[], lens: Lens | null): Item[] {
   const mode = lens?.rankingMode;
   return [...items].sort((left, right) => {
+    if (mode === "unread") {
+      const unreadDelta = Number(right.readStatus === "unread") - Number(left.readStatus === "unread");
+      if (unreadDelta !== 0) return unreadDelta;
+    }
+
     if (mode === "important" || mode === "event_first") {
       const eventDelta = Number(Boolean(right.eventGroupId)) - Number(Boolean(left.eventGroupId));
       if (mode === "event_first" && eventDelta !== 0) return eventDelta;
@@ -827,21 +851,15 @@ function sortItemsForLens(items: Item[], lens: Lens | null): Item[] {
 }
 
 function buildEventGroups(items: Item[]): EventGroup[] {
-  const groups = new Map<string, Item[]>();
+  const clusters = clusterByEntityOverlap(items);
 
-  for (const item of items) {
-    const key = eventClusterKey(item);
-    groups.set(key, [...(groups.get(key) ?? []), item]);
-  }
-
-  return [...groups.entries()]
-    .filter(([, groupedItems]) => groupedItems.length > 1 && new Set(groupedItems.map((item) => item.sourceId)).size > 1)
-    .sort(([, leftItems], [, rightItems]) => Math.max(...rightItems.map((item) => item.importanceScore)) - Math.max(...leftItems.map((item) => item.importanceScore)))
+  return clusters
+    .sort((left, right) => Math.max(...right.map((item) => item.importanceScore)) - Math.max(...left.map((item) => item.importanceScore)))
     .slice(0, 4)
-    .map(([clusterKey, groupedItems], index) => {
+    .map((groupedItems, index) => {
       const sourceCount = new Set(groupedItems.map((item) => item.sourceId)).size;
       const mainEntities = [...new Set(groupedItems.flatMap((item) => item.entities))].slice(0, 4);
-      const label = mainEntities[0] ?? clusterKey;
+      const label = mainEntities[0] ?? groupedItems[0].title.slice(0, 20);
       const id = `event-${stableSlug(label)}-${index}`;
 
       for (const item of groupedItems) {
@@ -861,6 +879,43 @@ function buildEventGroups(items: Item[]): EventGroup[] {
         status: "new"
       };
     });
+}
+
+function clusterByEntityOverlap(items: Item[]): Item[][] {
+  const assigned = new Set<string>();
+  const clusters: Item[][] = [];
+
+  for (let i = 0; i < items.length; i++) {
+    if (assigned.has(items[i].id)) continue;
+    const cluster = [items[i]];
+    assigned.add(items[i].id);
+
+    for (let j = i + 1; j < items.length; j++) {
+      if (assigned.has(items[j].id)) continue;
+      if (itemsShareSignal(items[i], items[j])) {
+        cluster.push(items[j]);
+        assigned.add(items[j].id);
+      }
+    }
+
+    if (cluster.length > 1 && new Set(cluster.map((item) => item.sourceId)).size > 1) {
+      clusters.push(cluster);
+    }
+  }
+
+  return clusters;
+}
+
+function itemsShareSignal(a: Item, b: Item): boolean {
+  if (a.entities.length > 0 && b.entities.length > 0) {
+    const shared = a.entities.filter((e) => b.entities.some((be) => be.toLowerCase() === e.toLowerCase()));
+    if (shared.length >= 1) return true;
+  }
+
+  const aWords = significantWords(a.title);
+  const bWords = significantWords(b.title);
+  const overlap = aWords.filter((w) => bWords.includes(w));
+  return overlap.length >= 3;
 }
 
 function buildWorkspaceSummary(activeLens: Lens, items: Item[], eventGroups: EventGroup[], sources: Source[]): WorkspaceSummary {
@@ -1020,17 +1075,13 @@ function nextRefreshIso(lastFetchedAt: string, refreshIntervalMinutes: number): 
   return Number.isNaN(next) ? "" : new Date(next).toISOString();
 }
 
-function eventClusterKey(item: Item): string {
-  if (item.entities.length > 0) return item.entities[0].toLowerCase();
-
-  const stopWords = new Set(["the", "and", "for", "with", "from", "that", "this", "into", "your", "our", "new", "show", "launches", "ships"]);
-  const words = `${item.title} ${item.summary}`
+function significantWords(text: string): string[] {
+  const stopWords = new Set(["the", "and", "for", "with", "from", "that", "this", "into", "your", "our", "new", "show", "launches", "ships", "how", "what", "why", "are", "was", "has", "have", "been"]);
+  return text
     .toLowerCase()
     .replace(/[^a-z0-9\u3400-\u9fff]+/g, " ")
     .split(/\s+/)
     .filter((word) => word.length > 2 && !stopWords.has(word));
-
-  return words.slice(0, 3).join("-") || "misc";
 }
 
 function attributeValue(tag: string, attribute: string): string {
