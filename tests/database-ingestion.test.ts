@@ -609,6 +609,34 @@ describe("database-backed ingestion MVP", () => {
     expect(logs[0].latencyMs).toBeGreaterThanOrEqual(0);
   });
 
+  test("does not run LLM summarization as part of source refresh", async () => {
+    const originalApiKey = process.env.NARRO_LLM_API_KEY;
+    process.env.NARRO_LLM_API_KEY = "test-key";
+    await saveSetting(database, "llm.provider", "openai-compatible");
+    await saveSetting(database, "llm.baseUrl", "https://llm.example.com/v1");
+    await saveSetting(database, "llm.model", "narro-test-model");
+
+    const llmFetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ choices: [{ message: { content: "AI summary" } }] }), { status: 200 })
+    );
+
+    try {
+      const result = await refreshSource(database, "hacker-news-rss", {
+        fetcher: vi.fn(async () => new Response(rssSample, { status: 200 }))
+      });
+
+      expect(result.insertedCount).toBe(1);
+      expect(llmFetch).not.toHaveBeenCalled();
+    } finally {
+      llmFetch.mockRestore();
+      if (originalApiKey === undefined) {
+        delete process.env.NARRO_LLM_API_KEY;
+      } else {
+        process.env.NARRO_LLM_API_KEY = originalApiKey;
+      }
+    }
+  });
+
   test("clusters duplicate event stories across sources with representative items", async () => {
     const googleFeed = rssSample
       .replace("GitHub adds repository governance controls", "OpenAI launches agent runtime for developers")
@@ -632,6 +660,86 @@ describe("database-backed ingestion MVP", () => {
     expect(workspace.eventGroups[0].title).toContain("OpenAI");
     expect(workspace.eventGroups[0].sourceCount).toBe(2);
     expect(workspace.items.filter((item) => item.eventGroupId === workspace.eventGroups[0].id)).toHaveLength(2);
+  });
+
+  test("keeps cross-source event candidates after same-source matches", async () => {
+    await createLens(database, {
+      id: "all-items",
+      name: "全部信息",
+      description: "No filters for event clustering regression coverage",
+      sourceGroupFilters: [],
+      keywordFilters: [],
+      entityFilters: [],
+      tagFilters: [],
+      rankingMode: "latest"
+    });
+    await createSource(database, {
+      id: "cluster-a",
+      name: "Cluster A",
+      type: "rss",
+      url: "https://example.com/cluster-a.xml",
+      group: "自定义",
+      enabled: true,
+      refreshIntervalMinutes: 60,
+      tags: ["ai"],
+      entities: []
+    });
+    await createSource(database, {
+      id: "cluster-b",
+      name: "Cluster B",
+      type: "rss",
+      url: "https://example.com/cluster-b.xml",
+      group: "自定义",
+      enabled: true,
+      refreshIntervalMinutes: 60,
+      tags: ["ai"],
+      entities: []
+    });
+
+    await refreshSource(database, "cluster-a", {
+      fetcher: vi.fn(async () =>
+        new Response(
+          rssWithItems([
+            {
+              id: "same-source-openai",
+              publishedAt: "Fri, 22 May 2026 10:00:00 GMT",
+              title: "OpenAI launches enterprise controls"
+            },
+            {
+              id: "bridge-runtime",
+              publishedAt: "Fri, 22 May 2026 09:00:00 GMT",
+              title: "OpenAI vector database runtime reaches developers"
+            }
+          ]),
+          { status: 200 }
+        )
+      )
+    });
+    await refreshSource(database, "cluster-b", {
+      fetcher: vi.fn(async () =>
+        new Response(
+          rssWithItems([
+            {
+              id: "cross-source-runtime",
+              publishedAt: "Fri, 22 May 2026 08:00:00 GMT",
+              title: "Vector database runtime reaches cloud teams"
+            }
+          ]),
+          { status: 200 }
+        )
+      )
+    });
+
+    const workspace = await getWorkspaceData(database, { lensId: "all-items" });
+
+    expect(workspace.eventGroups).toHaveLength(1);
+    expect(workspace.eventGroups[0].sourceCount).toBe(2);
+    expect(workspace.eventGroups[0].itemIds).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("cluster-a-"),
+        expect.stringContaining("cluster-b-")
+      ])
+    );
   });
 
   test("imports and exports OPML source lists", async () => {
@@ -699,6 +807,26 @@ describe("database-backed ingestion MVP", () => {
     ]);
   });
 });
+
+function rssWithItems(items: Array<{ id: string; publishedAt: string; title: string }>) {
+  return `<?xml version="1.0"?>
+<rss version="2.0">
+  <channel>
+    <title>Cluster Feed</title>
+    ${items
+      .map(
+        (item) => `<item>
+      <title>${item.title}</title>
+      <link>https://example.com/${item.id}</link>
+      <guid>${item.id}</guid>
+      <pubDate>${item.publishedAt}</pubDate>
+      <description>${item.title}</description>
+    </item>`
+      )
+      .join("\n")}
+  </channel>
+</rss>`;
+}
 
 async function waitUntil(condition: () => boolean) {
   const startedAt = Date.now();

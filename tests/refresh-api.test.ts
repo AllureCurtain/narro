@@ -47,6 +47,28 @@ describe("refresh API route", () => {
     });
   });
 
+  test("accepts bearer authorization for scheduled refresh requests", async () => {
+    const database = getDatabase();
+    await prepareDatabase(database);
+    await database.client.execute("update sources set enabled = 0");
+
+    const { GET } = await import("@/app/api/refresh/route");
+    const response = await GET(
+      new Request("http://narro.test/api/refresh", {
+        headers: {
+          authorization: "Bearer secret"
+        }
+      })
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      ok: true,
+      refreshed: 0
+    });
+  });
+
   test("refreshes due sources and returns a machine-readable report", async () => {
     const database = getDatabase();
     await prepareDatabase(database);

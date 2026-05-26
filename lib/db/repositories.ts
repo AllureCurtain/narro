@@ -882,28 +882,53 @@ function buildEventGroups(items: Item[]): EventGroup[] {
 }
 
 function clusterByEntityOverlap(items: Item[]): Item[][] {
-  const assigned = new Set<string>();
+  const links = new Map<number, Set<number>>();
   const clusters: Item[][] = [];
 
   for (let i = 0; i < items.length; i++) {
-    if (assigned.has(items[i].id)) continue;
-    const cluster = [items[i]];
-    assigned.add(items[i].id);
-
     for (let j = i + 1; j < items.length; j++) {
-      if (assigned.has(items[j].id)) continue;
       if (itemsShareSignal(items[i], items[j])) {
-        cluster.push(items[j]);
-        assigned.add(items[j].id);
+        addClusterLink(links, i, j);
       }
     }
+  }
 
-    if (cluster.length > 1 && new Set(cluster.map((item) => item.sourceId)).size > 1) {
-      clusters.push(cluster);
+  const visited = new Set<number>();
+  for (let i = 0; i < items.length; i++) {
+    if (visited.has(i)) continue;
+
+    const component = collectLinkedItems(items, links, i, visited);
+
+    if (component.length > 1 && new Set(component.map((item) => item.sourceId)).size > 1) {
+      clusters.push(component);
     }
   }
 
   return clusters;
+}
+
+function addClusterLink(links: Map<number, Set<number>>, left: number, right: number) {
+  links.set(left, (links.get(left) ?? new Set()).add(right));
+  links.set(right, (links.get(right) ?? new Set()).add(left));
+}
+
+function collectLinkedItems(items: Item[], links: Map<number, Set<number>>, start: number, visited: Set<number>): Item[] {
+  const component: Item[] = [];
+  const stack = [start];
+
+  while (stack.length > 0) {
+    const index = stack.pop() ?? 0;
+    if (visited.has(index)) continue;
+
+    visited.add(index);
+    component.push(items[index]);
+
+    for (const next of links.get(index) ?? []) {
+      if (!visited.has(next)) stack.push(next);
+    }
+  }
+
+  return component;
 }
 
 function itemsShareSignal(a: Item, b: Item): boolean {

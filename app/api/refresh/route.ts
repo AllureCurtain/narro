@@ -13,9 +13,13 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const expectedSecret = process.env.NARRO_REFRESH_SECRET;
-  const providedSecret = request.headers.get("x-narro-refresh-secret") ?? url.searchParams.get("secret");
+  const providedSecrets = [
+    request.headers.get("x-narro-refresh-secret"),
+    url.searchParams.get("secret"),
+    bearerToken(request.headers.get("authorization"))
+  ].filter(Boolean);
 
-  if (expectedSecret && providedSecret !== expectedSecret) {
+  if (expectedSecret && !providedSecrets.includes(expectedSecret)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
@@ -45,4 +49,9 @@ function numberParam(value: string | null, fallback: number, min: number, max: n
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.max(min, Math.min(max, Math.trunc(parsed)));
+}
+
+function bearerToken(value: string | null) {
+  const match = value?.match(/^Bearer\s+(.+)$/i);
+  return match?.[1]?.trim() || null;
 }
