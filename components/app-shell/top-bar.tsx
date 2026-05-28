@@ -1,12 +1,8 @@
 import {
-  Bell,
-  Command,
   MagnifyingGlass,
   Sparkle
 } from "@phosphor-icons/react/ssr";
-import Link from "next/link";
 import type { WorkspaceSummary } from "@/lib/domain";
-import { RefreshControl } from "./refresh-control";
 
 interface TopBarProps {
   activeLensId: string;
@@ -33,7 +29,7 @@ export function TopBar({ activeLensId, activeLensName, activeSourceId, searchQue
       </div>
 
       <form action="/" className="relative block min-w-0">
-        <span className="sr-only">搜索信息、实体、事件，或向 Narro 提问</span>
+        <span className="sr-only">搜索已抓取的文章</span>
         <input name="lens" type="hidden" value={activeLensId} />
         {activeSourceId ? <input name="source" type="hidden" value={activeSourceId} /> : null}
         <MagnifyingGlass
@@ -42,17 +38,12 @@ export function TopBar({ activeLensId, activeLensName, activeSourceId, searchQue
           size={17}
         />
         <input
-          aria-label="搜索信息、实体、事件，或向 Narro 提问"
+          aria-label="搜索已抓取的文章"
           className="h-9 w-full rounded-md border border-white/10 bg-white/[0.11] px-9 text-sm text-white outline-none transition focus:border-teal-200/60 focus:bg-white/[0.15]"
           defaultValue={searchQuery}
           name="q"
-          placeholder="搜索信息、实体、事件，或直接问：最近 AI IDE 有什么变化？"
+          placeholder="搜索已抓取的文章"
           type="search"
-        />
-        <Command
-          aria-hidden="true"
-          className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 text-slate-400 sm:block"
-          size={15}
         />
       </form>
 
@@ -60,21 +51,7 @@ export function TopBar({ activeLensId, activeLensName, activeSourceId, searchQue
         <span className="inline-flex min-h-8 items-center rounded-md bg-white/[0.08] px-3" title="当前 Lens 已启用的信息源数量">
           {summary.updatedSourceCount} 个源
         </span>
-        <RefreshControl />
-        <Link
-          aria-label="查看未读"
-          className="inline-flex size-8 items-center justify-center rounded-md bg-white/[0.1] text-slate-200 transition active:translate-y-px"
-          href={unreadHref(activeLensId, activeSourceId)}
-        >
-          <Bell size={16} aria-hidden="true" />
-        </Link>
       </div>
     </header>
   );
-}
-
-function unreadHref(lensId: string, sourceId?: string) {
-  const params = new URLSearchParams({ lens: lensId, view: "unread" });
-  if (sourceId) params.set("source", sourceId);
-  return `/?${params.toString()}`;
 }

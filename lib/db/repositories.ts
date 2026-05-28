@@ -1,6 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 import type {
   AgentTask,
+  AgentTaskStatus,
   AgentTaskType,
   EventGroup,
   Item,
@@ -560,6 +561,26 @@ export async function listItems(
   return sortItemsForLens(filtered, lens).slice(0, options.limit ?? 60);
 }
 
+export async function listDigestItems(
+  database = getDatabase(),
+  options: { limit?: number; search?: string } = {}
+): Promise<Item[]> {
+  const rows = await database.db
+    .select()
+    .from(itemsTable)
+    .orderBy(desc(itemsTable.publishedAt))
+    .limit(options.limit ?? 120);
+
+  let items = rows.map(itemFromRow).filter((item) => !item.hidden);
+
+  if (options.search) {
+    const query = options.search.toLowerCase();
+    items = items.filter((item) => searchableText(item).includes(query));
+  }
+
+  return items;
+}
+
 export async function getWorkspaceData(
   database = getDatabase(),
   options: ListItemsOptions & { itemId?: string } = {}
@@ -661,6 +682,35 @@ export async function runAgentTask(
     input: taskInput,
     output: output ?? "",
     error: error ?? "",
+    createdAt: now,
+    updatedAt: now
+  });
+
+  const [row] = await database.db.select().from(agentTasksTable).where(eq(agentTasksTable.id, id)).limit(1);
+  return agentTaskFromRow(row);
+}
+
+export async function createDigestTask(
+  database: NarroDatabase,
+  input: {
+    error?: string;
+    lensId: string;
+    output: string;
+    status: AgentTaskStatus;
+  }
+): Promise<AgentTask> {
+  const now = new Date().toISOString();
+  const id = `digest-${stableHash(`${now}-${input.output}`)}`;
+
+  await database.db.insert(agentTasksTable).values({
+    id,
+    type: "daily_brief",
+    lensId: input.lensId,
+    itemId: null,
+    status: input.status,
+    input: "今日科技简报",
+    output: input.output,
+    error: input.error ?? "",
     createdAt: now,
     updatedAt: now
   });

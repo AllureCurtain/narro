@@ -123,6 +123,14 @@ export interface RefreshActionState {
   refreshedAt?: string;
 }
 
+export interface DigestActionState {
+  digestOutput?: string;
+  insertedCount?: number;
+  ok: boolean;
+  refreshedCount?: number;
+  message: string;
+}
+
 export interface RefreshLog {
   id: string;
   sourceId: string;
