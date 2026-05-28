@@ -8,7 +8,7 @@ import { describe, expect, test } from "vitest";
 const root = process.cwd();
 
 describe("Narro digest workspace", () => {
-  test("renders the simplified digest product path", async () => {
+  test("renders the source-first product path", async () => {
     process.env.NARRO_DB_URL = "file::memory:";
     await closeDatabase();
     const { default: Home } = await import("@/app/page");
@@ -22,10 +22,13 @@ describe("Narro digest workspace", () => {
 
     expect(screen.getByRole("banner")).toHaveTextContent("Narro");
     expect(screen.getByRole("searchbox")).toHaveAccessibleName("搜索已抓取的文章");
-    expect(screen.getByRole("main", { name: "今日科技简报" })).toBeInTheDocument();
+    expect(screen.getByRole("main", { name: "今日科技信息" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "获取最新信息" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "生成今日科技简报" })).toBeInTheDocument();
-    expect(screen.getByText("模型设置")).toBeInTheDocument();
-    expect(screen.getByText("引用文章")).toBeInTheDocument();
+    expect(screen.getByText("AI 设置")).toBeInTheDocument();
+    expect(screen.queryByText("模型设置")).not.toBeInTheDocument();
+    expect(screen.getByText("最新文章")).toBeInTheDocument();
+    expect(screen.queryByText("引用文章")).not.toBeInTheDocument();
 
     expect(screen.queryByRole("navigation", { name: "信息源和视角" })).not.toBeInTheDocument();
     expect(screen.queryByRole("complementary", { name: "Agent 任务" })).not.toBeInTheDocument();
@@ -75,11 +78,10 @@ describe("Narro digest workspace", () => {
     const { default: Home } = await import("@/app/page");
     render(await Home({ searchParams: Promise.resolve({}) }));
 
-    const main = screen.getByRole("main", { name: "今日科技简报" });
-    expect(within(main).getByDisplayValue("openai-compatible")).toBeInTheDocument();
-    expect(within(main).getByDisplayValue("https://api.example.com/v1")).toBeInTheDocument();
-    expect(within(main).getByDisplayValue("gpt-5-mini")).toBeInTheDocument();
-    expect(within(main).getByPlaceholderText("已保存，留空不修改")).toBeInTheDocument();
+    const main = screen.getByRole("main", { name: "今日科技信息" });
+    const aiSettings = within(main).getByText("AI 设置");
+    expect(aiSettings).toBeInTheDocument();
+    expect(within(main).queryByDisplayValue("https://api.example.com/v1")).not.toBeInTheDocument();
     expect(within(main).getByRole("link", { name: /Show HN: Fast local AI coding workspace/ })).toHaveAttribute(
       "href",
       "https://example.com/fast-local-ai-coding"

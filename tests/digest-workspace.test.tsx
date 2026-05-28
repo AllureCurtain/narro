@@ -81,7 +81,7 @@ const summary: WorkspaceSummary = {
 };
 
 describe("simplified digest workspace", () => {
-  test("renders the digest path and removes secondary controls", () => {
+  test("renders source articles as the primary homepage content", () => {
     render(
       <NarroWorkspace
         agentTasks={[digestTask]}
@@ -96,22 +96,48 @@ describe("simplified digest workspace", () => {
       />
     );
 
-    expect(screen.getByRole("main", { name: "今日科技简报" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "生成今日科技简报" })).toBeInTheDocument();
-    expect(screen.getByText(/今日重点/)).toBeInTheDocument();
-    expect(screen.getByText("本地简报")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Show HN: Fast AI coding workspace/ })).toHaveAttribute("href", item.url);
+    const main = screen.getByRole("main", { name: "今日科技信息" });
+    expect(within(main).getByRole("button", { name: "获取最新信息" })).toBeInTheDocument();
+    expect(within(main).getByRole("heading", { name: "最新文章" })).toBeInTheDocument();
+    expect(within(main).getByRole("link", { name: /Show HN: Fast AI coding workspace/ })).toHaveAttribute("href", item.url);
+    expect(within(main).getByRole("button", { name: /标记 .* 为已读/ })).toBeInTheDocument();
+    expect(within(main).getByRole("button", { name: /隐藏 .*/ })).toBeInTheDocument();
+
+    expect(within(main).queryByRole("heading", { name: "引用文章" })).not.toBeInTheDocument();
+    expect(within(main).queryByText("模型设置")).not.toBeInTheDocument();
+    expect(within(main).getByText("AI 设置")).toBeInTheDocument();
 
     expect(screen.queryByRole("navigation", { name: "信息源和视角" })).not.toBeInTheDocument();
     expect(screen.queryByRole("complementary", { name: "Agent 任务" })).not.toBeInTheDocument();
     expect(screen.queryByText("高级筛选")).not.toBeInTheDocument();
     expect(screen.queryByText("事件组与趋势")).not.toBeInTheDocument();
-    expect(screen.queryByText("M1 先接这些")).not.toBeInTheDocument();
+    expect(screen.queryByText("OPML")).not.toBeInTheDocument();
 
     const banner = screen.getByRole("banner");
     expect(banner).toHaveTextContent("今日科技简报");
     expect(banner).not.toHaveTextContent("Lens");
     expect(within(banner).getByPlaceholderText("搜索已抓取的文章")).toBeInTheDocument();
+  });
+
+  test("keeps digest generation available as a secondary tool", () => {
+    render(
+      <NarroWorkspace
+        agentTasks={[digestTask]}
+        items={[item, secondItem]}
+        settings={{}}
+        sources={[source]}
+        summary={summary}
+      />
+    );
+
+    const main = screen.getByRole("main", { name: "今日科技信息" });
+    const refreshButton = within(main).getByRole("button", { name: "获取最新信息" });
+    const digestButton = within(main).getByRole("button", { name: "生成今日科技简报" });
+
+    expect(refreshButton).toBeInTheDocument();
+    expect(digestButton).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "最新文章" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "今日科技简报" })).toBeInTheDocument();
   });
 
   test("renders digest citations as links to matching referenced articles", () => {
@@ -132,13 +158,13 @@ describe("simplified digest workspace", () => {
 
     expect(screen.queryByText("## 今日重点")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "今日重点" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "查看引用 1" })).toHaveAttribute("href", "#article-ref-1");
-    expect(screen.getByRole("link", { name: "查看引用 2" })).toHaveAttribute("href", "#article-ref-2");
+    expect(screen.getByRole("link", { name: "查看引用 1" })).toHaveAttribute("href", "#article-hn-1");
+    expect(screen.getByRole("link", { name: "查看引用 2" })).toHaveAttribute("href", "#article-hn-2");
     expect(screen.getByText("引用校验：发现无匹配文章的编号 [9]。")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "复制简报" })).toBeInTheDocument();
 
-    const firstArticle = screen.getByTestId("article-ref-1");
-    const secondArticle = screen.getByTestId("article-ref-2");
+    const firstArticle = screen.getByTestId("article-hn-1");
+    const secondArticle = screen.getByTestId("article-hn-2");
 
     expect(firstArticle).toHaveTextContent("Show HN: Fast AI coding workspace");
     expect(within(firstArticle).getByText("2026/05/28")).toBeInTheDocument();
@@ -164,9 +190,9 @@ describe("simplified digest workspace", () => {
       />
     );
 
-    expect(screen.getByRole("link", { name: "查看引用 1" })).toHaveAttribute("href", "#article-ref-1");
-    expect(screen.getByTestId("article-ref-1")).toHaveTextContent("Google ships a new AI agent runtime");
-    expect(screen.getByTestId("article-ref-2")).toHaveTextContent("Show HN: Fast AI coding workspace");
+    expect(screen.getByRole("link", { name: "查看引用 1" })).toHaveAttribute("href", "#article-hn-2");
+    expect(screen.getByTestId("article-hn-2")).toHaveTextContent("Google ships a new AI agent runtime");
+    expect(screen.getByTestId("article-hn-1")).toHaveTextContent("Show HN: Fast AI coding workspace");
   });
 
   test("renders persisted AI digest mode from task input", () => {
