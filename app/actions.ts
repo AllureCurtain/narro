@@ -23,7 +23,7 @@ import {
   updateItemState,
   updateSourceEnabled
 } from "@/lib/db/repositories";
-import { getDatabase } from "@/lib/db/client";
+import { getDatabase, type NarroDatabase } from "@/lib/db/client";
 import { refreshDueSources, refreshEnabledSources, refreshSource } from "@/lib/ingestion/refresh";
 import { summarizeItemsBatch } from "@/lib/agent/summarize";
 
@@ -154,6 +154,62 @@ export async function saveLlmSettingsAction(formData: FormData) {
   revalidatePath("/");
 }
 
+async function refreshTechSources(
+  database: NarroDatabase,
+  options: {
+    fetcher?: typeof fetch;
+  } = {}
+) {
+  const results = await Promise.all(
+    techDigestSourceIds.map((sourceId) =>
+      refreshSource(database, sourceId, {
+        fetcher: options.fetcher,
+        limit: 8,
+        timeoutMs: 10000
+      })
+    )
+  );
+  const sources = await listRealSources(database);
+  const sourceNameById = new Map(sources.map((source) => [source.id, source.name]));
+  const sourceResults: DigestActionState["sourceResults"] = results.map((result) => ({
+    error: result.error,
+    fetchedCount: result.fetchedCount,
+    insertedCount: result.insertedCount,
+    ok: result.ok,
+    sourceId: result.sourceId,
+    sourceName: sourceNameById.get(result.sourceId) ?? result.sourceId
+  }));
+
+  return {
+    failedCount: results.filter((result) => !result.ok).length,
+    insertedCount: results.reduce((total, result) => total + result.insertedCount, 0),
+    refreshedCount: results.length,
+    sourceResults
+  };
+}
+
+export async function refreshTechSourcesForDatabase(
+  database = getDatabase(),
+  options: {
+    fetcher?: typeof fetch;
+  } = {}
+): Promise<DigestActionState> {
+  await prepareDatabase(database);
+  const { failedCount, insertedCount, refreshedCount, sourceResults } = await refreshTechSources(database, options);
+
+  return {
+    failedCount,
+    insertedCount,
+    ok: failedCount === 0,
+    refreshedCount,
+    sourceResults,
+    message:
+      failedCount === 0
+        ? `已获取最新信息，刷新 ${refreshedCount} 个源，新增 ${insertedCount} 条`
+        : `已尝试获取最新信息；${failedCount} 个源刷新失败，新增 ${insertedCount} 条`
+  };
+}
+
 export async function generateTechDigestForDatabase(
   database = getDatabase(),
   options: {
@@ -166,38 +222,20 @@ export async function generateTechDigestForDatabase(
   let refreshedCount = 0;
   let failedCount = 0;
   let insertedCount = 0;
-  let refreshResults: DigestActionState["sourceResults"] = [];
+  let sourceResults: DigestActionState["sourceResults"] = [];
 
   if (options.refresh !== false) {
-    const results = await Promise.all(
-      techDigestSourceIds.map((sourceId) =>
-        refreshSource(database, sourceId, {
-          fetcher: options.fetcher,
-          limit: 8,
-          timeoutMs: 10000
-        })
-      )
-    );
-    refreshedCount = results.length;
-    failedCount = results.filter((result) => !result.ok).length;
-    insertedCount = results.reduce((total, result) => total + result.insertedCount, 0);
-    refreshResults = results.map((result) => ({
-      error: result.error,
-      fetchedCount: result.fetchedCount,
-      insertedCount: result.insertedCount,
-      ok: result.ok,
-      sourceId: result.sourceId,
-      sourceName: result.sourceId
-    }));
+    const refreshState = await refreshTechSources(database, {
+      fetcher: options.fetcher
+    });
+    refreshedCount = refreshState.refreshedCount;
+    failedCount = refreshState.failedCount;
+    insertedCount = refreshState.insertedCount;
+    sourceResults = refreshState.sourceResults;
   }
 
   const items = await listDigestItems(database, { limit: 120 });
   const sources = await listRealSources(database);
-  const sourceNameById = new Map(sources.map((source) => [source.id, source.name]));
-  const sourceResults = refreshResults.map((result) => ({
-    ...result,
-    sourceName: sourceNameById.get(result.sourceId) ?? result.sourceId
-  }));
   const settings = await listSettings(database);
   const entries = selectDigestEntries({ items, sources });
 
@@ -247,6 +285,14 @@ export async function generateTechDigestAction(previousState?: DigestActionState
   void previousState;
   const database = getDatabase();
   const state = await generateTechDigestForDatabase(database);
+  revalidatePath("/");
+  return state;
+}
+
+export async function refreshTechSourcesAction(previousState?: DigestActionState): Promise<DigestActionState> {
+  void previousState;
+  const database = getDatabase();
+  const state = await refreshTechSourcesForDatabase(database);
   revalidatePath("/");
   return state;
 }

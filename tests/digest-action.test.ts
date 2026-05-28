@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { generateTechDigestForDatabase } from "@/app/actions";
+import { generateTechDigestForDatabase, refreshTechSourcesForDatabase } from "@/app/actions";
 import type { NarroDatabase } from "@/lib/db/client";
 import { closeDatabase, createDatabase, initializeDatabase, resetDatabase } from "@/lib/db/client";
 import { insertItemIfNew, listAgentTasks, prepareDatabase, saveSetting } from "@/lib/db/repositories";
@@ -118,5 +118,21 @@ describe("digest generation action", () => {
     });
     expect(result.sourceResults?.[0].sourceName).toBeTruthy();
     expect(result.sourceResults?.[0].error).toContain("HTTP 503");
+  });
+
+  test("refreshes tech sources without creating a digest task", async () => {
+    const result = await refreshTechSourcesForDatabase(database, {
+      fetcher: vi.fn(async () => new Response("service unavailable", { status: 503 }))
+    });
+    const tasks = await listAgentTasks(database, { lensId: "ai-coding", limit: 10 });
+
+    expect(result.ok).toBe(false);
+    expect(result.refreshedCount).toBe(8);
+    expect(result.failedCount).toBe(8);
+    expect(result.insertedCount).toBe(0);
+    expect(result.message).toContain("8 个源刷新失败");
+    expect(result.sourceResults).toHaveLength(8);
+    expect(result.digestOutput).toBeUndefined();
+    expect(tasks.filter((task) => task.type === "daily_brief")).toHaveLength(0);
   });
 });

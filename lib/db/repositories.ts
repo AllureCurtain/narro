@@ -659,8 +659,7 @@ export async function listAgentTasks(
     return !options.itemId && !options.lensId;
   });
 
-  const tasks = filtered.map(agentTaskFromRow);
-  return tasks.length > 0 ? tasks : defaultAgentTasks(options.lensId, options.itemId);
+  return filtered.map(agentTaskFromRow);
 }
 
 export async function runAgentTask(
@@ -1210,58 +1209,6 @@ function stableHash(value: string): string {
     hash = Math.imul(hash, 16777619);
   }
   return (hash >>> 0).toString(36);
-}
-
-function defaultAgentTasks(lensId?: string, itemId?: string): AgentTask[] {
-  const now = new Date().toISOString();
-  return [
-    {
-      id: "task-daily-brief-ready",
-      type: "daily_brief",
-      title: taskTitle("daily_brief"),
-      description: taskDescription("daily_brief"),
-      lensId,
-      status: "ready",
-      input: "当前 Lens 的近期高信号信息",
-      createdAt: now,
-      updatedAt: now,
-      primary: true
-    },
-    {
-      id: "task-explain-item-ready",
-      type: "explain_item",
-      title: taskTitle("explain_item"),
-      description: taskDescription("explain_item"),
-      lensId,
-      itemId,
-      status: "ready",
-      input: itemId ? "当前选中信息" : "选择一条信息后解释",
-      createdAt: now,
-      updatedAt: now
-    },
-    {
-      id: "task-track-lens-ready",
-      type: "track_lens",
-      title: taskTitle("track_lens"),
-      description: taskDescription("track_lens"),
-      lensId,
-      status: "ready",
-      input: "当前 Lens 的来源、关键词和实体",
-      createdAt: now,
-      updatedAt: now
-    },
-    {
-      id: "task-source-discovery-ready",
-      type: "source_discovery",
-      title: taskTitle("source_discovery"),
-      description: taskDescription("source_discovery"),
-      lensId,
-      status: "ready",
-      input: "当前 Lens 的高频主题",
-      createdAt: now,
-      updatedAt: now
-    }
-  ];
 }
 
 async function buildAgentOutput(
