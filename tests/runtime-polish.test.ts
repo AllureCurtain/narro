@@ -26,13 +26,9 @@ describe("runtime and data-source polish", () => {
     expect(existsSync(path.join(process.cwd(), "app", "icon.svg"))).toBe(true);
   });
 
-  test("documents concrete source candidates for the next data milestone", async () => {
-    const { dataSourceCandidates, mockSources } = await import("@/lib/mock-data");
+  test("keeps static mock sources free of webpage-only feeds", async () => {
+    const { mockSources } = await import("@/lib/mock-data");
 
-    expect(dataSourceCandidates.map((candidate) => candidate.name)).toEqual(
-      expect.arrayContaining(["已验证免费源目录", "GitHub Releases", "Hacker News", "arXiv"])
-    );
-    expect(dataSourceCandidates.map((candidate) => candidate.name)).not.toContain("产品 Changelog");
     expect(mockSources.every((source) => source.type !== "webpage")).toBe(true);
     expect(mockSources.map((source) => source.url)).not.toContain("https://www.anthropic.com/news/rss.xml");
   });

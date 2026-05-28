@@ -1,13 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { RefreshActionState, SourceType } from "@/lib/domain";
+import type { DigestActionState, RefreshActionState, SourceType } from "@/lib/domain";
+import { generateDigestFromItems } from "@/lib/digest/generator";
+import { selectDigestEntries, techDigestSourceIds } from "@/lib/digest/source-pack";
 import {
   createLens,
+  createDigestTask,
   createSource,
   deleteLens,
   importSourcesFromOpml,
+  listDigestItems,
   listItemsWithoutAiSummary,
+  listRealSources,
   listSettings,
   markItemsReadStatus,
   prepareDatabase,
@@ -18,7 +23,7 @@ import {
   updateItemState,
   updateSourceEnabled
 } from "@/lib/db/repositories";
-import { getDatabase } from "@/lib/db/client";
+import { getDatabase, type NarroDatabase } from "@/lib/db/client";
 import { refreshDueSources, refreshEnabledSources, refreshSource } from "@/lib/ingestion/refresh";
 import { summarizeItemsBatch } from "@/lib/agent/summarize";
 
@@ -141,8 +146,155 @@ export async function saveLlmSettingsAction(formData: FormData) {
   await saveSetting(database, "llm.provider", String(formData.get("provider") || "openai-compatible").trim());
   await saveSetting(database, "llm.baseUrl", String(formData.get("baseUrl") || "").trim());
   await saveSetting(database, "llm.model", String(formData.get("model") || "").trim());
+  const apiKey = String(formData.get("apiKey") || "").trim();
+  if (apiKey) {
+    await saveSetting(database, "llm.apiKey", apiKey);
+  }
 
   revalidatePath("/");
+}
+
+async function refreshTechSources(
+  database: NarroDatabase,
+  options: {
+    fetcher?: typeof fetch;
+  } = {}
+) {
+  const results = await Promise.all(
+    techDigestSourceIds.map((sourceId) =>
+      refreshSource(database, sourceId, {
+        fetcher: options.fetcher,
+        limit: 8,
+        timeoutMs: 10000
+      })
+    )
+  );
+  const sources = await listRealSources(database);
+  const sourceNameById = new Map(sources.map((source) => [source.id, source.name]));
+  const sourceResults: DigestActionState["sourceResults"] = results.map((result) => ({
+    error: result.error,
+    fetchedCount: result.fetchedCount,
+    insertedCount: result.insertedCount,
+    ok: result.ok,
+    sourceId: result.sourceId,
+    sourceName: sourceNameById.get(result.sourceId) ?? result.sourceId
+  }));
+
+  return {
+    failedCount: results.filter((result) => !result.ok).length,
+    insertedCount: results.reduce((total, result) => total + result.insertedCount, 0),
+    refreshedCount: results.length,
+    sourceResults
+  };
+}
+
+export async function refreshTechSourcesForDatabase(
+  database = getDatabase(),
+  options: {
+    fetcher?: typeof fetch;
+  } = {}
+): Promise<DigestActionState> {
+  await prepareDatabase(database);
+  const { failedCount, insertedCount, refreshedCount, sourceResults } = await refreshTechSources(database, options);
+
+  return {
+    failedCount,
+    insertedCount,
+    ok: failedCount === 0,
+    refreshedCount,
+    sourceResults,
+    message:
+      failedCount === 0
+        ? `已获取最新信息，刷新 ${refreshedCount} 个源，新增 ${insertedCount} 条`
+        : `已尝试获取最新信息；${failedCount} 个源刷新失败，新增 ${insertedCount} 条`
+  };
+}
+
+export async function generateTechDigestForDatabase(
+  database = getDatabase(),
+  options: {
+    fetcher?: typeof fetch;
+    refresh?: boolean;
+  } = {}
+): Promise<DigestActionState> {
+  await prepareDatabase(database);
+
+  let refreshedCount = 0;
+  let failedCount = 0;
+  let insertedCount = 0;
+  let sourceResults: DigestActionState["sourceResults"] = [];
+
+  if (options.refresh !== false) {
+    const refreshState = await refreshTechSources(database, {
+      fetcher: options.fetcher
+    });
+    refreshedCount = refreshState.refreshedCount;
+    failedCount = refreshState.failedCount;
+    insertedCount = refreshState.insertedCount;
+    sourceResults = refreshState.sourceResults;
+  }
+
+  const items = await listDigestItems(database, { limit: 120 });
+  const sources = await listRealSources(database);
+  const settings = await listSettings(database);
+  const entries = selectDigestEntries({ items, sources });
+
+  const result = await generateDigestFromItems({
+    entries,
+    settings: {
+      provider: settings["llm.provider"],
+      baseUrl: settings["llm.baseUrl"],
+      model: settings["llm.model"],
+      apiKey: settings["llm.apiKey"] || process.env.NARRO_LLM_API_KEY
+    },
+    llmOptions: {
+      fetcher: options.fetcher
+    }
+  });
+
+  const mode: DigestActionState["mode"] = entries.length === 0 ? "empty" : result.usedFallback ? "local" : "ai";
+
+  await createDigestTask(database, {
+    lensId: "ai-coding",
+    mode,
+    output: result.output,
+    referenceItemIds: result.references.map((reference) => reference.itemId),
+    status: result.status,
+    error: result.error
+  });
+
+  const ok = entries.length > 0 || failedCount === 0;
+  const failureMessage = failedCount > 0 ? `；${failedCount} 个源刷新失败` : "";
+
+  return {
+    articleCount: entries.length,
+    digestOutput: result.output,
+    failedCount,
+    insertedCount,
+    mode,
+    ok,
+    refreshedCount,
+    sourceResults,
+    message: result.usedFallback
+      ? `已生成本地简报，引用 ${entries.length} 条信息${failureMessage}`
+      : `已生成 AI 简报，引用 ${entries.length} 条信息${failureMessage}`
+  };
+}
+
+export async function generateTechDigestAction(previousState?: DigestActionState): Promise<DigestActionState> {
+  void previousState;
+  const database = getDatabase();
+  const state = await generateTechDigestForDatabase(database);
+  revalidatePath("/");
+  return state;
+}
+
+export async function refreshTechSourcesAction(previousState?: DigestActionState): Promise<DigestActionState> {
+  void previousState;
+  const database = getDatabase();
+  const state = await refreshTechSourcesForDatabase(database);
+  revalidatePath("/");
+  return state;
 }
 
 export async function testLlmConnectionAction() {

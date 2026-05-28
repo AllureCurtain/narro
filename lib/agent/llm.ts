@@ -122,7 +122,9 @@ function buildPrompt(input: AgentPromptInput) {
     return `请根据这些信息推荐免费、可靠、非爬虫的数据源方向，只推荐 RSS/Atom 或公开 API。\n任务输入: ${input.taskInput}\n\n${itemLines}`;
   }
 
-  return `请为当前 Lens 生成今日简报。要求：3-5 条要点，每条说明为什么重要，并尽量合并重复事件。\n任务输入: ${input.taskInput}\n\n${itemLines}`;
+  return input.taskInput.includes("中文科技简报")
+    ? input.taskInput
+    : `请为当前 Lens 生成今日简报。要求：3-5 条要点，每条说明为什么重要，并尽量合并重复事件。\n任务输入: ${input.taskInput}\n\n${itemLines}`;
 }
 
 function normalizeBaseUrl(value: string) {

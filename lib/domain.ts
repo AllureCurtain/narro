@@ -123,6 +123,29 @@ export interface RefreshActionState {
   refreshedAt?: string;
 }
 
+export type DigestMode = "ai" | "empty" | "local";
+
+export interface DigestSourceResult {
+  error?: string;
+  fetchedCount: number;
+  insertedCount: number;
+  ok: boolean;
+  sourceId: string;
+  sourceName: string;
+}
+
+export interface DigestActionState {
+  articleCount?: number;
+  digestOutput?: string;
+  failedCount?: number;
+  insertedCount?: number;
+  mode?: DigestMode;
+  ok: boolean;
+  refreshedCount?: number;
+  sourceResults?: DigestSourceResult[];
+  message: string;
+}
+
 export interface RefreshLog {
   id: string;
   sourceId: string;

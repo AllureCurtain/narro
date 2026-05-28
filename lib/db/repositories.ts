@@ -1,7 +1,9 @@
 import { desc, eq } from "drizzle-orm";
 import type {
   AgentTask,
+  AgentTaskStatus,
   AgentTaskType,
+  DigestMode,
   EventGroup,
   Item,
   Lens,
@@ -13,6 +15,7 @@ import type {
   WorkspaceSummary
 } from "@/lib/domain";
 import { llmIsConfigured, runOpenAiCompatibleTask, type LlmRunOptions } from "@/lib/agent/llm";
+import { buildDigestTaskInput } from "@/lib/digest/task-input";
 import { getDefaultSourcePresets, verifiedFreeSourcePresets } from "@/lib/sources/presets";
 import type { SourcePreset } from "@/lib/sources/types";
 import { presetToSource } from "@/lib/sources/types";
@@ -560,6 +563,26 @@ export async function listItems(
   return sortItemsForLens(filtered, lens).slice(0, options.limit ?? 60);
 }
 
+export async function listDigestItems(
+  database = getDatabase(),
+  options: { limit?: number; search?: string } = {}
+): Promise<Item[]> {
+  const rows = await database.db
+    .select()
+    .from(itemsTable)
+    .orderBy(desc(itemsTable.publishedAt))
+    .limit(options.limit ?? 120);
+
+  let items = rows.map(itemFromRow).filter((item) => !item.hidden);
+
+  if (options.search) {
+    const query = options.search.toLowerCase();
+    items = items.filter((item) => searchableText(item).includes(query));
+  }
+
+  return items;
+}
+
 export async function getWorkspaceData(
   database = getDatabase(),
   options: ListItemsOptions & { itemId?: string } = {}
@@ -636,8 +659,7 @@ export async function listAgentTasks(
     return !options.itemId && !options.lensId;
   });
 
-  const tasks = filtered.map(agentTaskFromRow);
-  return tasks.length > 0 ? tasks : defaultAgentTasks(options.lensId, options.itemId);
+  return filtered.map(agentTaskFromRow);
 }
 
 export async function runAgentTask(
@@ -661,6 +683,40 @@ export async function runAgentTask(
     input: taskInput,
     output: output ?? "",
     error: error ?? "",
+    createdAt: now,
+    updatedAt: now
+  });
+
+  const [row] = await database.db.select().from(agentTasksTable).where(eq(agentTasksTable.id, id)).limit(1);
+  return agentTaskFromRow(row);
+}
+
+export async function createDigestTask(
+  database: NarroDatabase,
+  input: {
+    error?: string;
+    lensId: string;
+    mode?: DigestMode;
+    output: string;
+    referenceItemIds?: string[];
+    status: AgentTaskStatus;
+  }
+): Promise<AgentTask> {
+  const now = new Date().toISOString();
+  const id = `digest-${stableHash(`${now}-${input.output}`)}`;
+
+  await database.db.insert(agentTasksTable).values({
+    id,
+    type: "daily_brief",
+    lensId: input.lensId,
+    itemId: null,
+    status: input.status,
+    input: buildDigestTaskInput({
+      mode: input.mode,
+      referenceItemIds: input.referenceItemIds ?? []
+    }),
+    output: input.output,
+    error: input.error ?? "",
     createdAt: now,
     updatedAt: now
   });
@@ -1153,58 +1209,6 @@ function stableHash(value: string): string {
     hash = Math.imul(hash, 16777619);
   }
   return (hash >>> 0).toString(36);
-}
-
-function defaultAgentTasks(lensId?: string, itemId?: string): AgentTask[] {
-  const now = new Date().toISOString();
-  return [
-    {
-      id: "task-daily-brief-ready",
-      type: "daily_brief",
-      title: taskTitle("daily_brief"),
-      description: taskDescription("daily_brief"),
-      lensId,
-      status: "ready",
-      input: "当前 Lens 的近期高信号信息",
-      createdAt: now,
-      updatedAt: now,
-      primary: true
-    },
-    {
-      id: "task-explain-item-ready",
-      type: "explain_item",
-      title: taskTitle("explain_item"),
-      description: taskDescription("explain_item"),
-      lensId,
-      itemId,
-      status: "ready",
-      input: itemId ? "当前选中信息" : "选择一条信息后解释",
-      createdAt: now,
-      updatedAt: now
-    },
-    {
-      id: "task-track-lens-ready",
-      type: "track_lens",
-      title: taskTitle("track_lens"),
-      description: taskDescription("track_lens"),
-      lensId,
-      status: "ready",
-      input: "当前 Lens 的来源、关键词和实体",
-      createdAt: now,
-      updatedAt: now
-    },
-    {
-      id: "task-source-discovery-ready",
-      type: "source_discovery",
-      title: taskTitle("source_discovery"),
-      description: taskDescription("source_discovery"),
-      lensId,
-      status: "ready",
-      input: "当前 Lens 的高频主题",
-      createdAt: now,
-      updatedAt: now
-    }
-  ];
 }
 
 async function buildAgentOutput(
