@@ -22,7 +22,9 @@ export function ArticleList({ items, sources }: ArticleListProps) {
           items.slice(0, 24).map((item, index) => (
             <a
               className="flex gap-3 py-3 text-sm transition hover:bg-slate-50"
+              data-testid={`article-ref-${index + 1}`}
               href={item.url}
+              id={`article-ref-${index + 1}`}
               key={item.id}
               rel="noreferrer"
               target="_blank"

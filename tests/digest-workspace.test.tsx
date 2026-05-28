@@ -42,6 +42,15 @@ const item: Item = {
   actionLabels: ["打开原文"]
 };
 
+const secondItem: Item = {
+  ...item,
+  id: "hn-2",
+  title: "Google ships a new AI agent runtime",
+  url: "https://example.com/google-agent-runtime",
+  summary: "Google describes an AI agent runtime update.",
+  importanceScore: 89
+};
+
 const digestTask: AgentTask = {
   id: "digest-1",
   type: "daily_brief",
@@ -111,5 +120,39 @@ describe("simplified digest workspace", () => {
 
     const banner = screen.getByRole("banner");
     expect(within(banner).getByPlaceholderText("搜索已抓取的文章")).toBeInTheDocument();
+  });
+
+  test("renders digest citations as links to matching referenced articles", () => {
+    render(
+      <NarroWorkspace
+        activeLensId="ai-coding"
+        agentTasks={[
+          {
+            ...digestTask,
+            output: "## 今日重点\n- [1] AI coding workspace 正在升温。\n- [2] Agent runtime 更新值得关注。\n- [9] 这个编号没有对应文章。"
+          }
+        ]}
+        dataSources={[]}
+        eventGroups={[]}
+        items={[item, secondItem]}
+        lenses={[lens]}
+        refreshLogs={[]}
+        settings={{}}
+        sources={[source]}
+        summary={summary}
+      />
+    );
+
+    expect(screen.queryByText("## 今日重点")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "今日重点" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "查看引用 1" })).toHaveAttribute("href", "#article-ref-1");
+    expect(screen.getByRole("link", { name: "查看引用 2" })).toHaveAttribute("href", "#article-ref-2");
+    expect(screen.getByText("引用校验：发现无匹配文章的编号 [9]。")).toBeInTheDocument();
+
+    const firstArticle = screen.getByTestId("article-ref-1");
+    const secondArticle = screen.getByTestId("article-ref-2");
+
+    expect(firstArticle).toHaveTextContent("Show HN: Fast AI coding workspace");
+    expect(secondArticle).toHaveTextContent("Google ships a new AI agent runtime");
   });
 });

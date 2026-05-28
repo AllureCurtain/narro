@@ -1,4 +1,5 @@
 import type { AgentTask, Item, Source } from "@/lib/domain";
+import { selectDigestEntries } from "@/lib/digest/source-pack";
 import { ArticleList } from "./article-list";
 import { DigestActionPanel } from "./digest-action-panel";
 import { DigestCard } from "./digest-card";
@@ -13,13 +14,15 @@ interface DigestWorkspaceProps {
 
 export function DigestWorkspace({ agentTasks, items, settings, sources }: DigestWorkspaceProps) {
   const latestDigest = agentTasks.find((task) => task.type === "daily_brief" && task.output);
+  const referenceItems = selectDigestEntries({ items, sources }).map((entry) => entry.item);
+  const displayedItems = referenceItems.length > 0 ? referenceItems : items.slice(0, 24);
 
   return (
     <main aria-label="今日科技简报" className="grid gap-3 bg-[#f8fafc] p-3 sm:p-4">
       <DigestActionPanel />
       <ModelSettingsForm settings={settings} />
-      <DigestCard latestDigest={latestDigest} />
-      <ArticleList items={items} sources={sources} />
+      <DigestCard latestDigest={latestDigest} referenceItems={displayedItems} />
+      <ArticleList items={displayedItems} sources={sources} />
     </main>
   );
 }

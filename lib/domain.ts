@@ -125,6 +125,7 @@ export interface RefreshActionState {
 
 export interface DigestActionState {
   digestOutput?: string;
+  failedCount?: number;
   insertedCount?: number;
   ok: boolean;
   refreshedCount?: number;

@@ -90,4 +90,15 @@ describe("digest generation action", () => {
     expect(fetcher).toHaveBeenCalledOnce();
     expect(result.digestOutput).toContain("OpenAI coding agent");
   });
+
+  test("reports refresh failures when no digest articles are available", async () => {
+    const result = await generateTechDigestForDatabase(database, {
+      fetcher: vi.fn(async () => new Response("service unavailable", { status: 503 }))
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.failedCount).toBe(8);
+    expect(result.message).toContain("8 个源刷新失败");
+    expect(result.digestOutput).toContain("还没有可用于生成简报的信息");
+  });
 });

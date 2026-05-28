@@ -164,6 +164,7 @@ export async function generateTechDigestForDatabase(
   await prepareDatabase(database);
 
   let refreshedCount = 0;
+  let failedCount = 0;
   let insertedCount = 0;
 
   if (options.refresh !== false) {
@@ -177,6 +178,7 @@ export async function generateTechDigestForDatabase(
       )
     );
     refreshedCount = results.length;
+    failedCount = results.filter((result) => !result.ok).length;
     insertedCount = results.reduce((total, result) => total + result.insertedCount, 0);
   }
 
@@ -205,14 +207,18 @@ export async function generateTechDigestForDatabase(
     error: result.error
   });
 
+  const ok = entries.length > 0 || failedCount === 0;
+  const failureMessage = failedCount > 0 ? `；${failedCount} 个源刷新失败` : "";
+
   return {
     digestOutput: result.output,
+    failedCount,
     insertedCount,
-    ok: true,
+    ok,
     refreshedCount,
     message: result.usedFallback
-      ? `已生成本地简报，引用 ${entries.length} 条信息`
-      : `已生成 AI 简报，引用 ${entries.length} 条信息`
+      ? `已生成本地简报，引用 ${entries.length} 条信息${failureMessage}`
+      : `已生成 AI 简报，引用 ${entries.length} 条信息${failureMessage}`
   };
 }
 
