@@ -3,6 +3,7 @@ import { generateTechDigestForDatabase } from "@/app/actions";
 import type { NarroDatabase } from "@/lib/db/client";
 import { closeDatabase, createDatabase, initializeDatabase, resetDatabase } from "@/lib/db/client";
 import { insertItemIfNew, listAgentTasks, prepareDatabase, saveSetting } from "@/lib/db/repositories";
+import { parseDigestTaskReferenceIds } from "@/lib/digest/task-input";
 import type { Item } from "@/lib/domain";
 
 const rssDate = "2026-05-28T02:00:00.000Z";
@@ -54,6 +55,7 @@ describe("digest generation action", () => {
     expect(result.message).toContain("已生成");
     expect(result.digestOutput).toContain("Show HN: AI coding browser");
     expect(tasks.some((task) => task.type === "daily_brief" && task.output?.includes("Show HN"))).toBe(true);
+    expect(parseDigestTaskReferenceIds(tasks[0].input)).toEqual(["digest-hn-1"]);
   });
 
   test("uses LLM settings including locally saved API key", async () => {

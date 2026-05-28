@@ -203,6 +203,7 @@ export async function generateTechDigestForDatabase(
   await createDigestTask(database, {
     lensId: "ai-coding",
     output: result.output,
+    referenceItemIds: result.references.map((reference) => reference.itemId),
     status: result.status,
     error: result.error
   });

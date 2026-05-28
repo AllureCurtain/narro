@@ -14,6 +14,7 @@ import type {
   WorkspaceSummary
 } from "@/lib/domain";
 import { llmIsConfigured, runOpenAiCompatibleTask, type LlmRunOptions } from "@/lib/agent/llm";
+import { buildDigestTaskInput } from "@/lib/digest/task-input";
 import { getDefaultSourcePresets, verifiedFreeSourcePresets } from "@/lib/sources/presets";
 import type { SourcePreset } from "@/lib/sources/types";
 import { presetToSource } from "@/lib/sources/types";
@@ -696,6 +697,7 @@ export async function createDigestTask(
     error?: string;
     lensId: string;
     output: string;
+    referenceItemIds?: string[];
     status: AgentTaskStatus;
   }
 ): Promise<AgentTask> {
@@ -708,7 +710,7 @@ export async function createDigestTask(
     lensId: input.lensId,
     itemId: null,
     status: input.status,
-    input: "今日科技简报",
+    input: buildDigestTaskInput(input.referenceItemIds ?? []),
     output: input.output,
     error: input.error ?? "",
     createdAt: now,

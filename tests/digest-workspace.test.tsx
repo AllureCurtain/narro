@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, test } from "vitest";
 import { NarroWorkspace } from "@/components/app-shell/narro-workspace";
-import type { AgentTask, Item, Lens, Source, WorkspaceSummary } from "@/lib/domain";
+import type { AgentTask, Item, Source, WorkspaceSummary } from "@/lib/domain";
 
 const source: Source = {
   id: "hacker-news-rss",
@@ -65,18 +65,11 @@ const digestTask: AgentTask = {
   primary: true
 };
 
-const lens: Lens = {
-  id: "ai-coding",
-  name: "AI 编程工具",
-  description: "关注 AI 编程工具。",
-  sourceGroupFilters: [],
-  keywordFilters: [],
-  entityFilters: [],
-  tagFilters: [],
-  rankingMode: "event_first",
-  active: true,
-  unreadCount: 1
-};
+const pinnedDigestInput = JSON.stringify({
+  kind: "tech_digest",
+  label: "今日科技简报",
+  referenceItemIds: ["hn-2", "hn-1"]
+});
 
 const summary: WorkspaceSummary = {
   activeLensId: "ai-coding",
@@ -90,13 +83,8 @@ describe("simplified digest workspace", () => {
   test("renders the digest path and removes secondary controls", () => {
     render(
       <NarroWorkspace
-        activeLensId="ai-coding"
         agentTasks={[digestTask]}
-        dataSources={[]}
-        eventGroups={[]}
         items={[item]}
-        lenses={[lens]}
-        refreshLogs={[]}
         settings={{
           "llm.provider": "openai-compatible",
           "llm.baseUrl": "https://api.example.com/v1",
@@ -119,24 +107,21 @@ describe("simplified digest workspace", () => {
     expect(screen.queryByText("M1 先接这些")).not.toBeInTheDocument();
 
     const banner = screen.getByRole("banner");
+    expect(banner).toHaveTextContent("今日科技简报");
+    expect(banner).not.toHaveTextContent("Lens");
     expect(within(banner).getByPlaceholderText("搜索已抓取的文章")).toBeInTheDocument();
   });
 
   test("renders digest citations as links to matching referenced articles", () => {
     render(
       <NarroWorkspace
-        activeLensId="ai-coding"
         agentTasks={[
           {
             ...digestTask,
             output: "## 今日重点\n- [1] AI coding workspace 正在升温。\n- [2] Agent runtime 更新值得关注。\n- [9] 这个编号没有对应文章。"
           }
         ]}
-        dataSources={[]}
-        eventGroups={[]}
         items={[item, secondItem]}
-        lenses={[lens]}
-        refreshLogs={[]}
         settings={{}}
         sources={[source]}
         summary={summary}
@@ -154,5 +139,27 @@ describe("simplified digest workspace", () => {
 
     expect(firstArticle).toHaveTextContent("Show HN: Fast AI coding workspace");
     expect(secondArticle).toHaveTextContent("Google ships a new AI agent runtime");
+  });
+
+  test("keeps digest citation order from the generated task input", () => {
+    render(
+      <NarroWorkspace
+        agentTasks={[
+          {
+            ...digestTask,
+            input: pinnedDigestInput,
+            output: "## 今日重点\n- [1] Agent runtime 更新值得关注。\n- [2] AI coding workspace 正在升温。"
+          }
+        ]}
+        items={[item, secondItem]}
+        settings={{}}
+        sources={[source]}
+        summary={summary}
+      />
+    );
+
+    expect(screen.getByRole("link", { name: "查看引用 1" })).toHaveAttribute("href", "#article-ref-1");
+    expect(screen.getByTestId("article-ref-1")).toHaveTextContent("Google ships a new AI agent runtime");
+    expect(screen.getByTestId("article-ref-2")).toHaveTextContent("Show HN: Fast AI coding workspace");
   });
 });

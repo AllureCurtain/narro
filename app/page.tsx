@@ -1,7 +1,6 @@
 import { NarroWorkspace } from "@/components/app-shell/narro-workspace";
 import { getDatabase } from "@/lib/db/client";
 import { getWorkspaceData, listDigestItems } from "@/lib/db/repositories";
-import { dataSourceCandidates } from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
 
@@ -27,12 +26,7 @@ export default async function Home({ searchParams }: HomeProps = {}) {
   return (
     <NarroWorkspace
       agentTasks={workspace.agentTasks}
-      dataSources={dataSourceCandidates}
-      eventGroups={[]}
       items={digestItems}
-      lenses={workspace.lenses}
-      refreshLogs={[]}
-      activeLensId={lensId}
       searchQuery={searchQuery}
       settings={workspace.settings}
       sources={workspace.sources}

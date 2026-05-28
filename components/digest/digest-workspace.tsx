@@ -1,5 +1,6 @@
 import type { AgentTask, Item, Source } from "@/lib/domain";
 import { selectDigestEntries } from "@/lib/digest/source-pack";
+import { parseDigestTaskReferenceIds } from "@/lib/digest/task-input";
 import { ArticleList } from "./article-list";
 import { DigestActionPanel } from "./digest-action-panel";
 import { DigestCard } from "./digest-card";
@@ -14,7 +15,10 @@ interface DigestWorkspaceProps {
 
 export function DigestWorkspace({ agentTasks, items, settings, sources }: DigestWorkspaceProps) {
   const latestDigest = agentTasks.find((task) => task.type === "daily_brief" && task.output);
-  const referenceItems = selectDigestEntries({ items, sources }).map((entry) => entry.item);
+  const storedReferenceItemIds = latestDigest ? parseDigestTaskReferenceIds(latestDigest.input) : [];
+  const storedReferenceItems = itemsFromStoredReferenceIds(items, storedReferenceItemIds);
+  const selectedReferenceItems = selectDigestEntries({ items, sources }).map((entry) => entry.item);
+  const referenceItems = storedReferenceItemIds.length > 0 ? storedReferenceItems : selectedReferenceItems;
   const displayedItems = referenceItems.length > 0 ? referenceItems : items.slice(0, 24);
 
   return (
@@ -25,4 +29,9 @@ export function DigestWorkspace({ agentTasks, items, settings, sources }: Digest
       <ArticleList items={displayedItems} sources={sources} />
     </main>
   );
+}
+
+function itemsFromStoredReferenceIds(items: Item[], referenceItemIds: string[]): Item[] {
+  const itemById = new Map(items.map((item) => [item.id, item]));
+  return referenceItemIds.map((itemId) => itemById.get(itemId)).filter((item): item is Item => Boolean(item));
 }
