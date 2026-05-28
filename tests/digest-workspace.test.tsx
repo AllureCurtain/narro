@@ -140,6 +140,24 @@ describe("simplified digest workspace", () => {
     expect(screen.getByRole("heading", { name: "今日科技简报" })).toBeInTheDocument();
   });
 
+  test("renders articles before optional digest tools in document order", () => {
+    render(
+      <NarroWorkspace
+        agentTasks={[digestTask]}
+        items={[item]}
+        settings={{}}
+        sources={[source]}
+        summary={summary}
+      />
+    );
+
+    const articleHeading = screen.getByRole("heading", { name: "最新文章" });
+    const digestHeading = screen.getByRole("heading", { name: "今日科技简报" });
+    const position = articleHeading.compareDocumentPosition(digestHeading);
+
+    expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   test("renders digest citations as links to matching referenced articles", () => {
     render(
       <NarroWorkspace
