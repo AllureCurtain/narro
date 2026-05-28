@@ -21,4 +21,42 @@ describe("digest action status", () => {
     expect(screen.getByText("失败 8 个")).toBeInTheDocument();
     expect(screen.getByText(/8 个源刷新失败/)).toHaveClass("text-amber-700");
   });
+
+  test("shows source-level refresh details", () => {
+    render(
+      <DigestActionStatus
+        state={{
+          articleCount: 1,
+          failedCount: 1,
+          insertedCount: 2,
+          mode: "local",
+          ok: true,
+          refreshedCount: 2,
+          message: "已生成本地简报，引用 1 条信息；1 个源刷新失败",
+          sourceResults: [
+            {
+              sourceId: "hacker-news-rss",
+              sourceName: "Hacker News RSS",
+              ok: true,
+              fetchedCount: 8,
+              insertedCount: 2
+            },
+            {
+              sourceId: "lobsters-rss",
+              sourceName: "Lobsters RSS",
+              ok: false,
+              fetchedCount: 0,
+              insertedCount: 0,
+              error: "HTTP 503"
+            }
+          ]
+        }}
+      />
+    );
+
+    expect(screen.getByText("Hacker News RSS")).toBeInTheDocument();
+    expect(screen.getByText("8 抓取 / 2 新增")).toBeInTheDocument();
+    expect(screen.getByText("Lobsters RSS")).toBeInTheDocument();
+    expect(screen.getByText("HTTP 503")).toBeInTheDocument();
+  });
 });

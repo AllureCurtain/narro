@@ -51,6 +51,23 @@ export function DigestActionStatus({ state }: { state: DigestActionState }) {
           {state.message}
         </p>
       ) : null}
+      {state.sourceResults && state.sourceResults.length > 0 ? (
+        <details className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+          <summary className="cursor-pointer font-medium text-slate-700">刷新明细</summary>
+          <div className="mt-2 divide-y divide-slate-200">
+            {state.sourceResults.map((result) => (
+              <div className="grid gap-1 py-2 sm:grid-cols-[minmax(0,1fr)_auto]" key={result.sourceId}>
+                <span className="font-medium text-slate-700">{result.sourceName}</span>
+                <span className={result.ok ? "text-slate-500" : "text-amber-700"}>
+                  {result.ok
+                    ? `${result.fetchedCount} 抓取 / ${result.insertedCount} 新增`
+                    : result.error ?? "刷新失败"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </details>
+      ) : null}
     </div>
   );
 }

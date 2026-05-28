@@ -166,6 +166,7 @@ export async function generateTechDigestForDatabase(
   let refreshedCount = 0;
   let failedCount = 0;
   let insertedCount = 0;
+  let refreshResults: DigestActionState["sourceResults"] = [];
 
   if (options.refresh !== false) {
     const results = await Promise.all(
@@ -180,10 +181,23 @@ export async function generateTechDigestForDatabase(
     refreshedCount = results.length;
     failedCount = results.filter((result) => !result.ok).length;
     insertedCount = results.reduce((total, result) => total + result.insertedCount, 0);
+    refreshResults = results.map((result) => ({
+      error: result.error,
+      fetchedCount: result.fetchedCount,
+      insertedCount: result.insertedCount,
+      ok: result.ok,
+      sourceId: result.sourceId,
+      sourceName: result.sourceId
+    }));
   }
 
   const items = await listDigestItems(database, { limit: 120 });
   const sources = await listRealSources(database);
+  const sourceNameById = new Map(sources.map((source) => [source.id, source.name]));
+  const sourceResults = refreshResults.map((result) => ({
+    ...result,
+    sourceName: sourceNameById.get(result.sourceId) ?? result.sourceId
+  }));
   const settings = await listSettings(database);
   const entries = selectDigestEntries({ items, sources });
 
@@ -210,13 +224,17 @@ export async function generateTechDigestForDatabase(
 
   const ok = entries.length > 0 || failedCount === 0;
   const failureMessage = failedCount > 0 ? `；${failedCount} 个源刷新失败` : "";
+  const mode: DigestActionState["mode"] = entries.length === 0 ? "empty" : result.usedFallback ? "local" : "ai";
 
   return {
+    articleCount: entries.length,
     digestOutput: result.output,
     failedCount,
     insertedCount,
+    mode,
     ok,
     refreshedCount,
+    sourceResults,
     message: result.usedFallback
       ? `已生成本地简报，引用 ${entries.length} 条信息${failureMessage}`
       : `已生成 AI 简报，引用 ${entries.length} 条信息${failureMessage}`

@@ -102,5 +102,14 @@ describe("digest generation action", () => {
     expect(result.failedCount).toBe(8);
     expect(result.message).toContain("8 个源刷新失败");
     expect(result.digestOutput).toContain("还没有可用于生成简报的信息");
+    expect(result.sourceResults).toHaveLength(8);
+    expect(result.sourceResults?.[0]).toMatchObject({
+      sourceId: "hacker-news-rss",
+      ok: false,
+      fetchedCount: 0,
+      insertedCount: 0
+    });
+    expect(result.sourceResults?.[0].sourceName).toBeTruthy();
+    expect(result.sourceResults?.[0].error).toContain("HTTP 503");
   });
 });
