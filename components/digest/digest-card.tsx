@@ -4,12 +4,13 @@ import type { AgentTask, DigestMode, Item } from "@/lib/domain";
 import { CopyDigestButton } from "./copy-digest-button";
 
 interface DigestCardProps {
+  citationHrefs?: Map<number, string>;
   latestDigest?: AgentTask;
   mode?: DigestMode;
   referenceItems: Item[];
 }
 
-export function DigestCard({ latestDigest, mode, referenceItems }: DigestCardProps) {
+export function DigestCard({ citationHrefs = new Map(), latestDigest, mode, referenceItems }: DigestCardProps) {
   const output = latestDigest?.output?.trim();
   const modeLabel = mode === "ai" ? "AI 简报" : mode === "empty" ? "暂无可用文章" : "本地简报";
 
@@ -37,18 +38,26 @@ export function DigestCard({ latestDigest, mode, referenceItems }: DigestCardPro
         </div>
       </div>
       {output ? (
-        <DigestMarkdown output={output} referenceItems={referenceItems} />
+        <DigestMarkdown citationHrefs={citationHrefs} output={output} referenceItems={referenceItems} />
       ) : (
         <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-5 text-sm leading-6 text-slate-600">
           <p className="font-medium text-slate-900">还没有生成简报。</p>
-          <p className="mt-1">配置模型后点击生成；没有模型时也会先生成本地可读摘要。</p>
+          <p className="mt-1">可以先阅读下方文章；需要摘要时再生成简报，未配置模型也会使用本地摘要。</p>
         </div>
       )}
     </section>
   );
 }
 
-function DigestMarkdown({ output, referenceItems }: { output: string; referenceItems: Item[] }) {
+function DigestMarkdown({
+  citationHrefs,
+  output,
+  referenceItems
+}: {
+  citationHrefs: Map<number, string>;
+  output: string;
+  referenceItems: Item[];
+}) {
   const document = parseDigestMarkdown(output, referenceItems.length);
 
   if (document.sections.length === 0) {
@@ -73,7 +82,7 @@ function DigestMarkdown({ output, referenceItems }: { output: string; referenceI
                 {bullet.references.length > 0 ? (
                   <span className="mr-2 inline-flex flex-wrap gap-1 align-baseline">
                     {bullet.references.map((reference) => (
-                      <CitationLink exists={reference <= referenceItems.length} key={reference} reference={reference} />
+                      <CitationLink exists={reference <= referenceItems.length} href={citationHrefs.get(reference)} key={reference} reference={reference} />
                     ))}
                   </span>
                 ) : null}
@@ -87,18 +96,18 @@ function DigestMarkdown({ output, referenceItems }: { output: string; referenceI
   );
 }
 
-function CitationLink({ exists, reference }: { exists: boolean; reference: number }) {
+function CitationLink({ exists, href, reference }: { exists: boolean; href?: string; reference: number }) {
   const className = [
     "inline-flex min-h-6 items-center rounded-md px-1.5 font-mono text-[11px] font-medium",
-    exists ? "bg-teal-50 text-teal-700 hover:bg-teal-100" : "bg-amber-100 text-amber-800"
+    exists && href ? "bg-teal-50 text-teal-700 hover:bg-teal-100" : "bg-amber-100 text-amber-800"
   ].join(" ");
 
-  if (!exists) {
+  if (!exists || !href) {
     return <span className={className}>[{reference}]</span>;
   }
 
   return (
-    <a aria-label={`查看引用 ${reference}`} className={className} href={`#article-ref-${reference}`}>
+    <a aria-label={`查看引用 ${reference}`} className={className} href={href}>
       [{reference}]
     </a>
   );

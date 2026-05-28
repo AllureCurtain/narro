@@ -195,6 +195,22 @@ describe("simplified digest workspace", () => {
     expect(screen.getByTestId("article-hn-1")).toHaveTextContent("Show HN: Fast AI coding workspace");
   });
 
+  test("renders source articles with stable item anchors and no citation index labels", () => {
+    render(
+      <NarroWorkspace
+        agentTasks={[]}
+        items={[item, secondItem]}
+        settings={{}}
+        sources={[source]}
+        summary={summary}
+      />
+    );
+
+    expect(screen.getByTestId("article-hn-1")).toHaveTextContent("Show HN: Fast AI coding workspace");
+    expect(screen.getByTestId("article-hn-2")).toHaveTextContent("Google ships a new AI agent runtime");
+    expect(screen.queryByText("[1]")).not.toBeInTheDocument();
+  });
+
   test("renders persisted AI digest mode from task input", () => {
     render(
       <NarroWorkspace
@@ -219,6 +235,26 @@ describe("simplified digest workspace", () => {
     expect(screen.getByText("AI 简报")).toBeInTheDocument();
   });
 
+  test("keeps model settings collapsed as optional AI settings", () => {
+    render(
+      <NarroWorkspace
+        agentTasks={[]}
+        items={[item]}
+        settings={{
+          "llm.provider": "openai-compatible",
+          "llm.baseUrl": "https://api.example.com/v1",
+          "llm.model": "test-model"
+        }}
+        sources={[source]}
+        summary={summary}
+      />
+    );
+
+    const main = screen.getByRole("main", { name: "今日科技信息" });
+    expect(within(main).getByText("AI 设置")).toBeInTheDocument();
+    expect(within(main).queryByDisplayValue("https://api.example.com/v1")).not.toBeInTheDocument();
+  });
+
   test("explains the first-use empty state", () => {
     render(
       <NarroWorkspace
@@ -231,6 +267,7 @@ describe("simplified digest workspace", () => {
     );
 
     expect(screen.getByText("还没有生成简报。")).toBeInTheDocument();
-    expect(screen.getByText("还没有可引用文章。点击生成简报会先刷新默认科技源。")).toBeInTheDocument();
+    expect(screen.getByText("还没有文章。点击获取最新信息会先刷新默认科技源。")).toBeInTheDocument();
+    expect(screen.getByText("可以先阅读下方文章；需要摘要时再生成简报，未配置模型也会使用本地摘要。")).toBeInTheDocument();
   });
 });
