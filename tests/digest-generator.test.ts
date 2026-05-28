@@ -61,9 +61,41 @@ describe("digest generator", () => {
 
     expect(result.status).toBe("completed");
     expect(result.usedFallback).toBe(true);
-    expect(result.output).toContain("## 今日重点");
+    expect(result.output).toContain("## AI 与开发工具");
     expect(result.output).toContain("[1] Show HN: Fast AI coding workspace");
     expect(result.references).toEqual([{ index: 1, itemId: "hn-1" }]);
+  });
+
+  test("builds prompt with grouped digest sections", () => {
+    const prompt = buildDigestPrompt([
+      { item, source },
+      {
+        item: {
+          ...item,
+          id: "hn-2",
+          title: "AWS platform update for model hosting",
+          summary: "AWS updates model hosting APIs.",
+          entities: ["AWS"],
+          tags: ["platform"]
+        },
+        source
+      }
+    ]);
+
+    expect(prompt).toContain("按以下分组组织简报");
+    expect(prompt).toContain("AI 与开发工具");
+    expect(prompt).toContain("平台与产品变化");
+  });
+
+  test("fallback digest explains why items matter", async () => {
+    const result = await generateDigestFromItems({
+      entries: [{ item, source }],
+      settings: {},
+      llmOptions: {}
+    });
+
+    expect(result.output).toContain("## AI 与开发工具");
+    expect(result.output).toContain("值得关注");
   });
 
   test("uses configured LLM output when settings and API key are present", async () => {

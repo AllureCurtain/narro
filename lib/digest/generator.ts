@@ -1,29 +1,36 @@
 import { llmIsConfigured, runOpenAiCompatibleTask } from "@/lib/agent/llm";
+import { groupDigestEntries } from "./topic-groups";
 import type { DigestEntry, GenerateDigestInput, GenerateDigestResult } from "./types";
 
 export function buildDigestPrompt(entries: DigestEntry[]): string {
-  const itemLines = entries
-    .map(({ item, source }, index) => {
-      const reference = index + 1;
-      return [
-        `[${reference}] ${item.title}`,
-        `来源: ${source.name}`,
-        `链接: ${item.url}`,
-        `摘要: ${item.summary}`,
-        `实体: ${item.entities.join(", ") || "无"}`,
-        `重要性: ${item.importanceScore}`
-      ].join("\n");
+  const groups = groupDigestEntries(entries);
+  const itemLines = groups
+    .map((group) => {
+      const lines = group.entries.map(({ item, source }) => {
+        const reference = entries.findIndex((entry) => entry.item.id === item.id) + 1;
+        return [
+          `[${reference}] ${item.title}`,
+          `来源: ${source.name}`,
+          `链接: ${item.url}`,
+          `摘要: ${item.summary}`,
+          `实体: ${item.entities.join(", ") || "无"}`,
+          `重要性: ${item.importanceScore}`
+        ].join("\n");
+      });
+
+      return `### ${group.title}\n${lines.join("\n\n")}`;
     })
     .join("\n\n");
 
   return [
     "请基于下面的资料生成一篇中文科技简报。",
+    "按以下分组组织简报，但只输出有真实内容的分组。",
     "要求：",
     "- 输出 3 到 5 个 Markdown 二级标题。",
-    "- 总共 6 到 10 条要点。",
+    "- 总共 6 到 10 条要点；资料不足时可以少于 6 条。",
     "- 每条要点必须引用编号，例如 [1] 或 [1][3]。",
-    "- 合并重复或高度相似的信息。",
-    "- 每条说明为什么重要，不要复述标题。",
+    "- 合并重复或高度相似的信息，合并时保留多个引用编号。",
+    "- 每条必须说明为什么重要，避免只复述标题。",
     "- 不要编造资料中没有的事实。",
     "",
     itemLines
@@ -88,23 +95,21 @@ export async function generateDigestFromItems(input: GenerateDigestInput): Promi
 }
 
 function buildFallbackDigest(entries: DigestEntry[]): string {
-  const top = entries.slice(0, 5);
-  const continued = entries.slice(5, 10);
+  const selectedEntries = entries.slice(0, 10);
+  const groups = groupDigestEntries(selectedEntries);
 
-  const topLines = top.map(({ item, source }, index) => `- [${index + 1}] ${item.title}。来源：${source.name}。`);
-  const continuedLines = continued.map(
-    ({ item, source }, index) => `- [${index + 6}] ${item.title}。来源：${source.name}。`
-  );
-
-  return [
-    "## 今日重点",
-    ...topLines,
-    continuedLines.length > 0 ? "" : null,
-    continuedLines.length > 0 ? "## 可继续阅读" : null,
-    ...continuedLines
-  ]
-    .filter((line): line is string => typeof line === "string")
-    .join("\n");
+  return groups
+    .flatMap((group) => [
+      `## ${group.title}`,
+      ...group.entries.map(({ item, source }) => {
+        const reference = entries.findIndex((entry) => entry.item.id === item.id) + 1;
+        const summary = item.summary ? ` ${item.summary}` : "";
+        return `- [${reference}] ${item.title}。值得关注：${summary || "这条信息可能影响近期技术判断"} 来源：${source.name}。`;
+      }),
+      ""
+    ])
+    .join("\n")
+    .trim();
 }
 
 export function parseDigestReferenceIndexes(output: string): number[] {
