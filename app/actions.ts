@@ -214,8 +214,11 @@ export async function generateTechDigestForDatabase(
     }
   });
 
+  const mode: DigestActionState["mode"] = entries.length === 0 ? "empty" : result.usedFallback ? "local" : "ai";
+
   await createDigestTask(database, {
     lensId: "ai-coding",
+    mode,
     output: result.output,
     referenceItemIds: result.references.map((reference) => reference.itemId),
     status: result.status,
@@ -224,7 +227,6 @@ export async function generateTechDigestForDatabase(
 
   const ok = entries.length > 0 || failedCount === 0;
   const failureMessage = failedCount > 0 ? `；${failedCount} 个源刷新失败` : "";
-  const mode: DigestActionState["mode"] = entries.length === 0 ? "empty" : result.usedFallback ? "local" : "ai";
 
   return {
     articleCount: entries.length,

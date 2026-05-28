@@ -68,6 +68,7 @@ const digestTask: AgentTask = {
 const pinnedDigestInput = JSON.stringify({
   kind: "tech_digest",
   label: "今日科技简报",
+  mode: "local",
   referenceItemIds: ["hn-2", "hn-1"]
 });
 
@@ -98,6 +99,7 @@ describe("simplified digest workspace", () => {
     expect(screen.getByRole("main", { name: "今日科技简报" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "生成今日科技简报" })).toBeInTheDocument();
     expect(screen.getByText(/今日重点/)).toBeInTheDocument();
+    expect(screen.getByText("本地简报")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Show HN: Fast AI coding workspace/ })).toHaveAttribute("href", item.url);
 
     expect(screen.queryByRole("navigation", { name: "信息源和视角" })).not.toBeInTheDocument();
@@ -165,5 +167,44 @@ describe("simplified digest workspace", () => {
     expect(screen.getByRole("link", { name: "查看引用 1" })).toHaveAttribute("href", "#article-ref-1");
     expect(screen.getByTestId("article-ref-1")).toHaveTextContent("Google ships a new AI agent runtime");
     expect(screen.getByTestId("article-ref-2")).toHaveTextContent("Show HN: Fast AI coding workspace");
+  });
+
+  test("renders persisted AI digest mode from task input", () => {
+    render(
+      <NarroWorkspace
+        agentTasks={[
+          {
+            ...digestTask,
+            input: JSON.stringify({
+              kind: "tech_digest",
+              label: "今日科技简报",
+              mode: "ai",
+              referenceItemIds: ["hn-1"]
+            })
+          }
+        ]}
+        items={[item]}
+        settings={{}}
+        sources={[source]}
+        summary={summary}
+      />
+    );
+
+    expect(screen.getByText("AI 简报")).toBeInTheDocument();
+  });
+
+  test("explains the first-use empty state", () => {
+    render(
+      <NarroWorkspace
+        agentTasks={[]}
+        items={[]}
+        settings={{}}
+        sources={[source]}
+        summary={summary}
+      />
+    );
+
+    expect(screen.getByText("还没有生成简报。")).toBeInTheDocument();
+    expect(screen.getByText("还没有可引用文章。点击生成简报会先刷新默认科技源。")).toBeInTheDocument();
   });
 });

@@ -3,6 +3,7 @@ import type {
   AgentTask,
   AgentTaskStatus,
   AgentTaskType,
+  DigestMode,
   EventGroup,
   Item,
   Lens,
@@ -696,6 +697,7 @@ export async function createDigestTask(
   input: {
     error?: string;
     lensId: string;
+    mode?: DigestMode;
     output: string;
     referenceItemIds?: string[];
     status: AgentTaskStatus;
@@ -710,7 +712,10 @@ export async function createDigestTask(
     lensId: input.lensId,
     itemId: null,
     status: input.status,
-    input: buildDigestTaskInput(input.referenceItemIds ?? []),
+    input: buildDigestTaskInput({
+      mode: input.mode,
+      referenceItemIds: input.referenceItemIds ?? []
+    }),
     output: input.output,
     error: input.error ?? "",
     createdAt: now,

@@ -1,6 +1,6 @@
 import type { AgentTask, Item, Source } from "@/lib/domain";
 import { selectDigestEntries } from "@/lib/digest/source-pack";
-import { parseDigestTaskReferenceIds } from "@/lib/digest/task-input";
+import { parseDigestTaskMode, parseDigestTaskReferenceIds } from "@/lib/digest/task-input";
 import { ArticleList } from "./article-list";
 import { DigestActionPanel } from "./digest-action-panel";
 import { DigestCard } from "./digest-card";
@@ -15,6 +15,7 @@ interface DigestWorkspaceProps {
 
 export function DigestWorkspace({ agentTasks, items, settings, sources }: DigestWorkspaceProps) {
   const latestDigest = agentTasks.find((task) => task.type === "daily_brief" && task.output);
+  const digestMode = latestDigest ? parseDigestTaskMode(latestDigest.input) : undefined;
   const storedReferenceItemIds = latestDigest ? parseDigestTaskReferenceIds(latestDigest.input) : [];
   const storedReferenceItems = itemsFromStoredReferenceIds(items, storedReferenceItemIds);
   const selectedReferenceItems = selectDigestEntries({ items, sources }).map((entry) => entry.item);
@@ -25,7 +26,7 @@ export function DigestWorkspace({ agentTasks, items, settings, sources }: Digest
     <main aria-label="今日科技简报" className="grid gap-3 bg-[#f8fafc] p-3 sm:p-4">
       <DigestActionPanel />
       <ModelSettingsForm settings={settings} />
-      <DigestCard latestDigest={latestDigest} referenceItems={displayedItems} />
+      <DigestCard latestDigest={latestDigest} mode={digestMode} referenceItems={displayedItems} />
       <ArticleList items={displayedItems} sources={sources} />
     </main>
   );

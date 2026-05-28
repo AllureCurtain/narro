@@ -34,13 +34,19 @@ export function DigestActionStatus({ state }: { state: DigestActionState }) {
     typeof state.refreshedCount === "number" ||
     typeof state.insertedCount === "number" ||
     typeof state.failedCount === "number";
+  const hasStatusPills = hasCounts || Boolean(state.mode);
 
-  if (!state.message && !hasCounts) return null;
+  if (!state.message && !hasStatusPills) return null;
 
   return (
     <div className="mt-3 space-y-2">
-      {hasCounts ? (
+      {hasStatusPills ? (
         <div className="flex flex-wrap gap-2 text-[11px] text-slate-500">
+          {state.mode ? (
+            <StatusPill tone={state.mode === "empty" ? "warning" : "neutral"}>
+              {state.mode === "ai" ? "AI 简报" : state.mode === "local" ? "本地简报" : "暂无可用文章"}
+            </StatusPill>
+          ) : null}
           {typeof state.refreshedCount === "number" ? <StatusPill>刷新 {state.refreshedCount} 个源</StatusPill> : null}
           {typeof state.insertedCount === "number" ? <StatusPill>新增 {state.insertedCount} 条</StatusPill> : null}
           {typeof state.failedCount === "number" && state.failedCount > 0 ? <StatusPill tone="warning">失败 {state.failedCount} 个</StatusPill> : null}

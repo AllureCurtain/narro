@@ -59,4 +59,22 @@ describe("digest action status", () => {
     expect(screen.getByText("Lobsters RSS")).toBeInTheDocument();
     expect(screen.getByText("HTTP 503")).toBeInTheDocument();
   });
+
+  test("shows digest mode status", () => {
+    render(
+      <DigestActionStatus
+        state={{
+          articleCount: 0,
+          failedCount: 0,
+          insertedCount: 0,
+          mode: "empty",
+          ok: true,
+          refreshedCount: 8,
+          message: "已生成本地简报，引用 0 条信息"
+        }}
+      />
+    );
+
+    expect(screen.getByText("暂无可用文章")).toBeInTheDocument();
+  });
 });
