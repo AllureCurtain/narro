@@ -1,4 +1,5 @@
 import { ArrowSquareOut } from "@phosphor-icons/react/ssr";
+import { updateItemStateAction } from "@/app/actions";
 import type { Item, Source } from "@/lib/domain";
 
 interface ArticleListProps {
@@ -20,24 +21,51 @@ export function ArticleList({ items, sources }: ArticleListProps) {
       <div className="divide-y divide-slate-100">
         {items.length > 0 ? (
           items.slice(0, 24).map((item, index) => (
-            <a
-              className="flex gap-3 py-3 text-sm transition hover:bg-slate-50"
+            <article
+              className="grid gap-2 py-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto]"
               data-testid={`article-ref-${index + 1}`}
-              href={item.url}
               id={`article-ref-${index + 1}`}
               key={item.id}
-              rel="noreferrer"
-              target="_blank"
             >
-              <span className="mt-0.5 font-mono text-xs text-slate-400">[{index + 1}]</span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-medium leading-5 text-slate-950">{item.title}</span>
-                <span className="mt-1 line-clamp-2 block text-xs leading-5 text-slate-500">
-                  {sourceById.get(item.sourceId)?.name ?? item.sourceId} · {item.summary}
+              <a className="flex min-w-0 gap-3 transition hover:bg-slate-50" href={item.url} rel="noreferrer" target="_blank">
+                <span className="mt-0.5 font-mono text-xs text-slate-400">[{index + 1}]</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-medium leading-5 text-slate-950">{item.title}</span>
+                  <span className="mt-1 line-clamp-2 block text-xs leading-5 text-slate-500">
+                    <span>{sourceById.get(item.sourceId)?.name ?? item.sourceId}</span>
+                    <span> · </span>
+                    <span>{formatDate(item.publishedAt)}</span>
+                    <span> · </span>
+                    <span>{item.summary}</span>
+                  </span>
                 </span>
-              </span>
-              <ArrowSquareOut className="mt-1 shrink-0 text-slate-400" size={15} aria-hidden="true" />
-            </a>
+                <ArrowSquareOut className="mt-1 shrink-0 text-slate-400" size={15} aria-hidden="true" />
+              </a>
+              <div className="flex items-center gap-2 sm:justify-end">
+                <form action={updateItemStateAction}>
+                  <input name="itemId" type="hidden" value={item.id} />
+                  <input name="readStatus" type="hidden" value="read" />
+                  <button
+                    aria-label={`标记 ${item.title} 为已读`}
+                    className="min-h-8 rounded-md border border-slate-200 px-2 text-xs text-slate-600"
+                    type="submit"
+                  >
+                    已读
+                  </button>
+                </form>
+                <form action={updateItemStateAction}>
+                  <input name="itemId" type="hidden" value={item.id} />
+                  <input name="hidden" type="hidden" value="true" />
+                  <button
+                    aria-label={`隐藏 ${item.title}`}
+                    className="min-h-8 rounded-md border border-slate-200 px-2 text-xs text-slate-600"
+                    type="submit"
+                  >
+                    隐藏
+                  </button>
+                </form>
+              </div>
+            </article>
           ))
         ) : (
           <p className="text-sm leading-6 text-slate-600">还没有可引用文章。点击生成简报会先刷新默认科技源。</p>
@@ -45,4 +73,14 @@ export function ArticleList({ items, sources }: ArticleListProps) {
       </div>
     </section>
   );
+}
+
+function formatDate(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.valueOf())) return "unknown";
+  return new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(date);
 }

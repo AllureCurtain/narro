@@ -133,11 +133,15 @@ describe("simplified digest workspace", () => {
     expect(screen.getByRole("link", { name: "查看引用 1" })).toHaveAttribute("href", "#article-ref-1");
     expect(screen.getByRole("link", { name: "查看引用 2" })).toHaveAttribute("href", "#article-ref-2");
     expect(screen.getByText("引用校验：发现无匹配文章的编号 [9]。")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "复制简报" })).toBeInTheDocument();
 
     const firstArticle = screen.getByTestId("article-ref-1");
     const secondArticle = screen.getByTestId("article-ref-2");
 
     expect(firstArticle).toHaveTextContent("Show HN: Fast AI coding workspace");
+    expect(within(firstArticle).getByText("2026/05/28")).toBeInTheDocument();
+    expect(within(firstArticle).getByRole("button", { name: /标记 .* 为已读/ })).toBeInTheDocument();
+    expect(within(firstArticle).getByRole("button", { name: /隐藏 .*/ })).toBeInTheDocument();
     expect(secondArticle).toHaveTextContent("Google ships a new AI agent runtime");
   });
 

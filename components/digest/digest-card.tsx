@@ -1,6 +1,7 @@
 import { WarningCircle } from "@phosphor-icons/react/ssr";
 import { parseDigestMarkdown } from "@/lib/digest/markdown";
 import type { AgentTask, Item } from "@/lib/domain";
+import { CopyDigestButton } from "./copy-digest-button";
 
 interface DigestCardProps {
   latestDigest?: AgentTask;
@@ -19,11 +20,14 @@ export function DigestCard({ latestDigest, referenceItems }: DigestCardProps) {
             今日科技简报
           </h2>
         </div>
-        {latestDigest ? (
-          <span className="rounded-full bg-slate-100 px-2 py-1 font-mono text-[11px] text-slate-500">
-            {formatTime(latestDigest.updatedAt)}
-          </span>
-        ) : null}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {output ? <CopyDigestButton output={output} /> : null}
+          {latestDigest ? (
+            <span className="rounded-full bg-slate-100 px-2 py-1 font-mono text-[11px] text-slate-500">
+              {formatTime(latestDigest.updatedAt)}
+            </span>
+          ) : null}
+        </div>
       </div>
       {output ? (
         <DigestMarkdown output={output} referenceItems={referenceItems} />
