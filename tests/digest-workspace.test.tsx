@@ -81,7 +81,7 @@ const summary: WorkspaceSummary = {
 };
 
 describe("simplified digest workspace", () => {
-  test("renders source articles as the primary homepage content", () => {
+  test("renders category rankings as the primary homepage content", () => {
     render(
       <NarroWorkspace
         agentTasks={[digestTask]}
@@ -96,14 +96,14 @@ describe("simplified digest workspace", () => {
       />
     );
 
-    const main = screen.getByRole("main", { name: "今日科技信息" });
+    const main = screen.getByRole("main", { name: "科技热榜" });
     expect(within(main).getByRole("button", { name: "获取最新信息" })).toBeInTheDocument();
-    expect(within(main).getByRole("heading", { name: "最新文章" })).toBeInTheDocument();
-    expect(within(main).getByRole("link", { name: /Show HN: Fast AI coding workspace/ })).toHaveAttribute("href", item.url);
+    expect(within(main).getByRole("heading", { name: "科技热榜" })).toBeInTheDocument();
+    expect(within(main).getByRole("region", { name: "开发者社区" })).toHaveTextContent("Show HN: Fast AI coding workspace");
     expect(within(main).getByRole("button", { name: /标记 .* 为已读/ })).toBeInTheDocument();
     expect(within(main).getByRole("button", { name: /隐藏 .*/ })).toBeInTheDocument();
 
-    expect(within(main).queryByRole("heading", { name: "引用文章" })).not.toBeInTheDocument();
+    expect(within(main).queryByRole("heading", { name: "最新文章" })).not.toBeInTheDocument();
     expect(within(main).queryByText("模型设置")).not.toBeInTheDocument();
     expect(within(main).getByText("AI 设置")).toBeInTheDocument();
 
@@ -114,7 +114,7 @@ describe("simplified digest workspace", () => {
     expect(screen.queryByText("OPML")).not.toBeInTheDocument();
 
     const banner = screen.getByRole("banner");
-    expect(banner).toHaveTextContent("今日科技简报");
+    expect(banner).toHaveTextContent("科技热榜");
     expect(banner).not.toHaveTextContent("Lens");
     expect(within(banner).getByPlaceholderText("搜索已抓取的文章")).toBeInTheDocument();
   });
@@ -130,17 +130,17 @@ describe("simplified digest workspace", () => {
       />
     );
 
-    const main = screen.getByRole("main", { name: "今日科技信息" });
+    const main = screen.getByRole("main", { name: "科技热榜" });
     const refreshButton = within(main).getByRole("button", { name: "获取最新信息" });
     const digestButton = within(main).getByRole("button", { name: "生成今日科技简报" });
 
     expect(refreshButton).toBeInTheDocument();
     expect(digestButton).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "最新文章" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "科技热榜" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "今日科技简报" })).toBeInTheDocument();
   });
 
-  test("renders articles before optional digest tools in document order", () => {
+  test("renders rankings before optional digest tools in document order", () => {
     render(
       <NarroWorkspace
         agentTasks={[digestTask]}
@@ -151,9 +151,9 @@ describe("simplified digest workspace", () => {
       />
     );
 
-    const articleHeading = screen.getByRole("heading", { name: "最新文章" });
+    const rankingHeading = screen.getByRole("heading", { name: "科技热榜" });
     const digestHeading = screen.getByRole("heading", { name: "今日科技简报" });
-    const position = articleHeading.compareDocumentPosition(digestHeading);
+    const position = rankingHeading.compareDocumentPosition(digestHeading);
 
     expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
@@ -268,7 +268,7 @@ describe("simplified digest workspace", () => {
       />
     );
 
-    const main = screen.getByRole("main", { name: "今日科技信息" });
+    const main = screen.getByRole("main", { name: "科技热榜" });
     expect(within(main).getByText("AI 设置")).toBeInTheDocument();
     expect(within(main).queryByDisplayValue("https://api.example.com/v1")).not.toBeInTheDocument();
   });
@@ -285,7 +285,7 @@ describe("simplified digest workspace", () => {
     );
 
     expect(screen.getByText("还没有生成简报。")).toBeInTheDocument();
-    expect(screen.getByText("还没有文章。点击获取最新信息会先刷新默认科技源。")).toBeInTheDocument();
+    expect(screen.getAllByText("暂无内容。点击获取最新信息后，这里会显示该分类的热榜。")).toHaveLength(5);
     expect(screen.getByText("可以先阅读下方文章；需要摘要时再生成简报，未配置模型也会使用本地摘要。")).toBeInTheDocument();
   });
 });

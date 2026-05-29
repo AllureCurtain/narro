@@ -22,12 +22,18 @@ describe("Narro digest workspace", () => {
 
     expect(screen.getByRole("banner")).toHaveTextContent("Narro");
     expect(screen.getByRole("searchbox")).toHaveAccessibleName("搜索已抓取的文章");
-    expect(screen.getByRole("main", { name: "今日科技信息" })).toBeInTheDocument();
+    expect(screen.getByRole("main", { name: "科技热榜" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "获取最新信息" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "生成今日科技简报" })).toBeInTheDocument();
     expect(screen.getByText("AI 设置")).toBeInTheDocument();
     expect(screen.queryByText("模型设置")).not.toBeInTheDocument();
-    expect(screen.getByText("最新文章")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "科技热榜" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "AI / 模型" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "开发者社区" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "工程 / 开源" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "产品 / 平台" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "中文技术" })).toBeInTheDocument();
+    expect(screen.queryByText("最新文章")).not.toBeInTheDocument();
     expect(screen.queryByText("引用文章")).not.toBeInTheDocument();
 
     expect(screen.queryByRole("navigation", { name: "信息源和视角" })).not.toBeInTheDocument();
@@ -78,7 +84,7 @@ describe("Narro digest workspace", () => {
     const { default: Home } = await import("@/app/page");
     render(await Home({ searchParams: Promise.resolve({}) }));
 
-    const main = screen.getByRole("main", { name: "今日科技信息" });
+    const main = screen.getByRole("main", { name: "科技热榜" });
     const aiSettings = within(main).getByText("AI 设置");
     expect(aiSettings).toBeInTheDocument();
     expect(within(main).queryByDisplayValue("https://api.example.com/v1")).not.toBeInTheDocument();

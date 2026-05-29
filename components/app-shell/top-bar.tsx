@@ -21,7 +21,7 @@ export function TopBar({ searchQuery, summary }: TopBarProps) {
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold leading-tight tracking-normal">Narro</p>
-          <p className="truncate text-[11px] leading-tight text-slate-300">今日科技简报</p>
+          <p className="truncate text-[11px] leading-tight text-slate-300">科技热榜</p>
         </div>
       </div>
 
