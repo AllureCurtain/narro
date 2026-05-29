@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import type { DigestActionState, RefreshActionState, SourceType } from "@/lib/domain";
 import { generateDigestFromItems } from "@/lib/digest/generator";
-import { selectDigestEntries, techDigestSourceIds } from "@/lib/digest/source-pack";
+import { selectDigestEntries } from "@/lib/digest/source-pack";
+import { rankingBoardSourceIds } from "@/lib/rankings/category-source-pack";
 import {
   createLens,
   createDigestTask,
@@ -161,7 +162,7 @@ async function refreshTechSources(
   } = {}
 ) {
   const results = await Promise.all(
-    techDigestSourceIds.map((sourceId) =>
+    rankingBoardSourceIds.map((sourceId) =>
       refreshSource(database, sourceId, {
         fetcher: options.fetcher,
         limit: 8,

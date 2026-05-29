@@ -5,6 +5,7 @@ import { closeDatabase, createDatabase, initializeDatabase, resetDatabase } from
 import { insertItemIfNew, listAgentTasks, prepareDatabase, saveSetting } from "@/lib/db/repositories";
 import { parseDigestTaskMode, parseDigestTaskReferenceIds } from "@/lib/digest/task-input";
 import type { Item } from "@/lib/domain";
+import { rankingBoardSourceIds } from "@/lib/rankings/category-source-pack";
 
 const rssDate = "2026-05-28T02:00:00.000Z";
 
@@ -106,10 +107,10 @@ describe("digest generation action", () => {
     expect(result.ok).toBe(false);
     expect(result.mode).toBe("empty");
     expect(result.articleCount).toBe(0);
-    expect(result.failedCount).toBe(8);
-    expect(result.message).toContain("8 个源刷新失败");
+    expect(result.failedCount).toBe(rankingBoardSourceIds.length);
+    expect(result.message).toContain(`${rankingBoardSourceIds.length} 个源刷新失败`);
     expect(result.digestOutput).toContain("还没有可用于生成简报的信息");
-    expect(result.sourceResults).toHaveLength(8);
+    expect(result.sourceResults).toHaveLength(rankingBoardSourceIds.length);
     expect(result.sourceResults?.[0]).toMatchObject({
       sourceId: "hacker-news-rss",
       ok: false,
@@ -127,11 +128,11 @@ describe("digest generation action", () => {
     const tasks = await listAgentTasks(database, { lensId: "ai-coding", limit: 10 });
 
     expect(result.ok).toBe(false);
-    expect(result.refreshedCount).toBe(8);
-    expect(result.failedCount).toBe(8);
+    expect(result.refreshedCount).toBe(rankingBoardSourceIds.length);
+    expect(result.failedCount).toBe(rankingBoardSourceIds.length);
     expect(result.insertedCount).toBe(0);
-    expect(result.message).toContain("8 个源刷新失败");
-    expect(result.sourceResults).toHaveLength(8);
+    expect(result.message).toContain(`${rankingBoardSourceIds.length} 个源刷新失败`);
+    expect(result.sourceResults).toHaveLength(rankingBoardSourceIds.length);
     expect(result.digestOutput).toBeUndefined();
     expect(tasks.filter((task) => task.type === "daily_brief")).toHaveLength(0);
   });
