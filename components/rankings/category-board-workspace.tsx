@@ -13,6 +13,7 @@ import { categoryArticleDomId } from "./category-ranking-row";
 
 interface CategoryBoardWorkspaceProps {
   agentTasks: AgentTask[];
+  digestReferenceItems?: Item[];
   items: Item[];
   refreshLogs?: RefreshLog[];
   searchQuery?: string;
@@ -20,15 +21,22 @@ interface CategoryBoardWorkspaceProps {
   sources: Source[];
 }
 
-export function CategoryBoardWorkspace({ agentTasks, items, refreshLogs, searchQuery, settings, sources }: CategoryBoardWorkspaceProps) {
+export function CategoryBoardWorkspace({
+  agentTasks,
+  digestReferenceItems = [],
+  items,
+  refreshLogs,
+  searchQuery,
+  settings,
+  sources
+}: CategoryBoardWorkspaceProps) {
   const latestDigest = agentTasks.find((task) => task.type === "daily_brief" && task.output);
   const digestMode = latestDigest ? parseDigestTaskMode(latestDigest.input) : undefined;
   const storedReferenceItemIds = latestDigest ? parseDigestTaskReferenceIds(latestDigest.input) : [];
-  const storedReferenceItems = itemsFromStoredReferenceIds(items, storedReferenceItemIds);
+  const storedReferenceItems = itemsFromStoredReferenceIds([...items, ...digestReferenceItems], storedReferenceItemIds);
   const selectedReferenceItems = selectDigestEntries({ items, sources }).map((entry) => entry.item);
   const referenceItems = storedReferenceItemIds.length > 0 ? storedReferenceItems : selectedReferenceItems;
-  const boardItems = uniqueItemsById([...items, ...referenceItems]);
-  const board = buildCategoryBoard({ items: boardItems, sources });
+  const board = buildCategoryBoard({ items, sources });
   const renderedItemIds = new Set(board.categories.flatMap((category) => category.items.map((entry) => entry.item.id)));
   const fallbackReferenceItems = referenceItems.filter((item) => !renderedItemIds.has(item.id));
   const renderedItemIdList = [...renderedItemIds];
@@ -144,17 +152,4 @@ export function CategoryBoardWorkspace({ agentTasks, items, refreshLogs, searchQ
 function itemsFromStoredReferenceIds(items: Item[], referenceItemIds: string[]): Item[] {
   const itemById = new Map(items.map((item) => [item.id, item]));
   return referenceItemIds.map((itemId) => itemById.get(itemId)).filter((item): item is Item => Boolean(item));
-}
-
-function uniqueItemsById(items: Item[]): Item[] {
-  const seen = new Set<string>();
-  const result: Item[] = [];
-
-  for (const item of items) {
-    if (seen.has(item.id)) continue;
-    seen.add(item.id);
-    result.push(item);
-  }
-
-  return result;
 }

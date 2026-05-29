@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { render, screen, within } from "@testing-library/react";
 import { closeDatabase, getDatabase } from "@/lib/db/client";
-import { insertItemIfNew, prepareDatabase, saveSetting } from "@/lib/db/repositories";
+import { createDigestTask, insertItemIfNew, prepareDatabase, saveSetting } from "@/lib/db/repositories";
 import { describe, expect, test } from "vitest";
 
 const root = process.cwd();
@@ -133,6 +133,81 @@ describe("Narro digest workspace", () => {
     const main = screen.getByRole("main", { name: "科技热榜" });
     expect(within(main).getByText("搜索：compiler")).toBeInTheDocument();
     expect(within(main).getByRole("link", { name: /React compiler runtime update/ })).toBeInTheDocument();
+
+    await closeDatabase();
+  }, 60000);
+
+  test("keeps stored digest citation anchors available during search", async () => {
+    process.env.NARRO_DB_URL = "file::memory:";
+    await closeDatabase();
+
+    const database = getDatabase();
+    await prepareDatabase(database);
+    await insertItemIfNew(
+      database,
+      {
+        id: "search-visible-item",
+        sourceId: "react-blog",
+        title: "React compiler runtime update",
+        url: "https://example.com/react-compiler",
+        author: "React Blog",
+        publishedAt: "2026-05-22T08:30:00.000Z",
+        fetchedAt: "2026-05-22T09:00:00.000Z",
+        summary: "Compiler details for React developers.",
+        aiSummary: "",
+        language: "en",
+        tags: ["framework"],
+        entities: ["React"],
+        importanceScore: 88,
+        readStatus: "unread",
+        saved: false,
+        hidden: false,
+        reason: "test fixture",
+        actionLabels: ["打开原文"]
+      },
+      "react-compiler-search"
+    );
+    await insertItemIfNew(
+      database,
+      {
+        id: "digest-reference-only",
+        sourceId: "hacker-news-rss",
+        title: "Digest reference outside search",
+        url: "https://example.com/digest-reference",
+        author: "Hacker News",
+        publishedAt: "2026-05-21T08:30:00.000Z",
+        fetchedAt: "2026-05-21T09:00:00.000Z",
+        summary: "This referenced article does not match the active query.",
+        aiSummary: "",
+        language: "en",
+        tags: ["community"],
+        entities: ["Hacker News"],
+        importanceScore: 80,
+        readStatus: "unread",
+        saved: false,
+        hidden: false,
+        reason: "test fixture",
+        actionLabels: ["打开原文"]
+      },
+      "digest-reference-search"
+    );
+    await createDigestTask(database, {
+      lensId: "ai-coding",
+      mode: "local",
+      output: "## 今日重点\n- [1] Digest reference outside search 仍然需要可回链。",
+      referenceItemIds: ["digest-reference-only"],
+      status: "completed"
+    });
+
+    const { default: Home } = await import("@/app/page");
+    render(await Home({ searchParams: Promise.resolve({ q: "compiler" }) }));
+
+    const main = screen.getByRole("main", { name: "科技热榜" });
+    expect(within(main).getByText("搜索：compiler")).toBeInTheDocument();
+    expect(within(main).getByRole("link", { name: /React compiler runtime update/ })).toBeInTheDocument();
+    expect(within(main).getByRole("link", { name: "查看引用 1" })).toHaveAttribute("href", "#article-digest-reference-only");
+    expect(within(main).getByRole("region", { name: "简报来源" })).toHaveTextContent("Digest reference outside search");
+    expect(within(main).getByTestId("article-digest-reference-only")).toBeInTheDocument();
 
     await closeDatabase();
   }, 60000);

@@ -10,6 +10,7 @@ import { TopBar } from "./top-bar";
 
 interface NarroWorkspaceProps {
   agentTasks: AgentTask[];
+  digestReferenceItems?: Item[];
   items: Item[];
   refreshLogs?: RefreshLog[];
   searchQuery?: string;
@@ -20,6 +21,7 @@ interface NarroWorkspaceProps {
 
 export function NarroWorkspace({
   agentTasks,
+  digestReferenceItems = [],
   items,
   refreshLogs = [],
   searchQuery,
@@ -35,6 +37,7 @@ export function NarroWorkspace({
         <div className="overflow-hidden rounded-md border border-slate-300/80 bg-slate-300/80">
           <CategoryBoardWorkspace
             agentTasks={agentTasks}
+            digestReferenceItems={digestReferenceItems}
             items={items}
             refreshLogs={refreshLogs}
             searchQuery={searchQuery}
