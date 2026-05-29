@@ -109,6 +109,16 @@ describe("category board workspace", () => {
     expect(screen.getByRole("link", { name: "查看引用 1" })).toHaveAttribute("href", "#article-ai-1");
   });
 
+  test("shows refresh controls before category rankings", () => {
+    render(<CategoryBoardWorkspace agentTasks={[]} items={items} settings={{}} sources={sources} />);
+
+    const refreshButton = screen.getByRole("button", { name: "获取最新信息" });
+    const rankingHeading = screen.getByRole("heading", { name: "科技热榜" });
+    const position = refreshButton.compareDocumentPosition(rankingHeading);
+
+    expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   test("renders all category cards with empty states when no articles exist", () => {
     render(<CategoryBoardWorkspace agentTasks={[]} items={[]} settings={{}} sources={sources} />);
 
