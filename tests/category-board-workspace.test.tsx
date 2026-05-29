@@ -140,4 +140,12 @@ describe("category board workspace", () => {
     expect(screen.getAllByText("当前搜索没有匹配文章。请调整关键词或清除搜索。")).toHaveLength(5);
     expect(screen.queryByText("暂无内容。点击获取最新信息后，这里会显示该分类的热榜。")).not.toBeInTheDocument();
   });
+
+  test("can mark the currently ranked articles as read", () => {
+    render(<CategoryBoardWorkspace agentTasks={[]} items={items} settings={{}} sources={sources} />);
+
+    const main = screen.getByRole("main", { name: "科技热榜" });
+    expect(within(main).getByRole("button", { name: "标记当前榜单为已读" })).toBeInTheDocument();
+    expect(within(main).getByDisplayValue("ai-1,community-1,engineering-1,platform-1,zh-1")).toHaveAttribute("name", "itemIds");
+  });
 });

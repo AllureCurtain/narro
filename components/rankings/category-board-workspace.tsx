@@ -1,4 +1,5 @@
 import type { AgentTask, Item, Source } from "@/lib/domain";
+import { markVisibleItemsReadAction } from "@/app/actions";
 import { selectDigestEntries } from "@/lib/digest/source-pack";
 import { parseDigestTaskMode, parseDigestTaskReferenceIds } from "@/lib/digest/task-input";
 import { DigestActionPanel } from "@/components/digest/digest-action-panel";
@@ -27,6 +28,7 @@ export function CategoryBoardWorkspace({ agentTasks, items, searchQuery, setting
   const boardItems = uniqueItemsById([...items, ...referenceItems]);
   const board = buildCategoryBoard({ items: boardItems, sources });
   const renderedItemIds = new Set(board.categories.flatMap((category) => category.items.map((entry) => entry.item.id)));
+  const renderedItemIdList = [...renderedItemIds];
   const normalizedSearchQuery = searchQuery?.trim();
   const isSearching = Boolean(normalizedSearchQuery);
   const emptyMessage = isSearching
@@ -64,6 +66,17 @@ export function CategoryBoardWorkspace({ agentTasks, items, searchQuery, setting
           <div className="flex flex-wrap gap-2 text-xs text-slate-500">
             <span className="rounded-md bg-slate-100 px-2 py-1 font-mono">{board.totalItemCount} 条上榜</span>
             <span className="rounded-md bg-slate-100 px-2 py-1 font-mono">{board.updatedSourceCount} 个源已更新</span>
+            {renderedItemIdList.length > 0 ? (
+              <form action={markVisibleItemsReadAction}>
+                <input name="itemIds" type="hidden" value={renderedItemIdList.join(",")} />
+                <button
+                  className="min-h-8 rounded-md border border-slate-200 bg-white px-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50 active:translate-y-px"
+                  type="submit"
+                >
+                  标记当前榜单为已读
+                </button>
+              </form>
+            ) : null}
           </div>
         </div>
 

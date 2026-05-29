@@ -74,4 +74,25 @@ describe("category ranking card", () => {
     expect(within(card).getByText("0 条")).toBeInTheDocument();
     expect(within(card).getByText("暂无内容。点击获取最新信息后，这里会显示该分类的热榜。")).toBeInTheDocument();
   });
+
+  test("renders a clear read state for read articles", () => {
+    render(
+      <CategoryRankingCard
+        category={{
+          ...ranking,
+          items: [
+            {
+              item: { ...item, readStatus: "read" },
+              source,
+              rank: 1
+            }
+          ]
+        }}
+      />
+    );
+
+    const card = screen.getByRole("region", { name: "开发者社区" });
+    expect(within(card).getAllByText("已读").length).toBeGreaterThanOrEqual(1);
+    expect(within(card).getByTestId("article-hn-1")).toHaveAttribute("data-read-status", "read");
+  });
 });

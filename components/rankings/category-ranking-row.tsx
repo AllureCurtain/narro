@@ -8,9 +8,15 @@ interface CategoryRankingRowProps {
 
 export function CategoryRankingRow({ entry }: CategoryRankingRowProps) {
   const { item, rank, source } = entry;
+  const isRead = item.readStatus === "read";
 
   return (
-    <article className="grid gap-2 py-3 sm:grid-cols-[2.25rem_minmax(0,1fr)_auto]" data-testid={categoryArticleDomId(item)} id={categoryArticleDomId(item)}>
+    <article
+      className={["grid gap-2 py-3 sm:grid-cols-[2.25rem_minmax(0,1fr)_auto]", isRead ? "opacity-70" : ""].join(" ")}
+      data-read-status={item.readStatus}
+      data-testid={categoryArticleDomId(item)}
+      id={categoryArticleDomId(item)}
+    >
       <span
         className={[
           "flex size-8 items-center justify-center rounded-md font-mono text-xs font-semibold",
@@ -22,12 +28,15 @@ export function CategoryRankingRow({ entry }: CategoryRankingRowProps) {
 
       <div className="min-w-0">
         <a className="block underline-offset-2 hover:underline" href={item.url} rel="noreferrer" target="_blank">
-          <h3 className="line-clamp-2 text-sm font-semibold leading-5 text-slate-950">{item.title}</h3>
+          <h3 className={["line-clamp-2 text-sm font-semibold leading-5", isRead ? "text-slate-500" : "text-slate-950"].join(" ")}>
+            {item.title}
+          </h3>
         </a>
         <p className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-[11px] leading-5 text-slate-500">
           <span>{source.name}</span>
           <span>{formatDate(item.publishedAt)}</span>
           <span className="font-mono text-teal-700">{item.importanceScore}</span>
+          {isRead ? <span className="rounded bg-slate-100 px-1.5 text-slate-500">已读</span> : null}
         </p>
         <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-600">{item.summary}</p>
       </div>
