@@ -12,11 +12,12 @@ import { categoryArticleDomId } from "./category-ranking-row";
 interface CategoryBoardWorkspaceProps {
   agentTasks: AgentTask[];
   items: Item[];
+  searchQuery?: string;
   settings: Record<string, string>;
   sources: Source[];
 }
 
-export function CategoryBoardWorkspace({ agentTasks, items, settings, sources }: CategoryBoardWorkspaceProps) {
+export function CategoryBoardWorkspace({ agentTasks, items, searchQuery, settings, sources }: CategoryBoardWorkspaceProps) {
   const latestDigest = agentTasks.find((task) => task.type === "daily_brief" && task.output);
   const digestMode = latestDigest ? parseDigestTaskMode(latestDigest.input) : undefined;
   const storedReferenceItemIds = latestDigest ? parseDigestTaskReferenceIds(latestDigest.input) : [];
@@ -26,6 +27,11 @@ export function CategoryBoardWorkspace({ agentTasks, items, settings, sources }:
   const boardItems = uniqueItemsById([...items, ...referenceItems]);
   const board = buildCategoryBoard({ items: boardItems, sources });
   const renderedItemIds = new Set(board.categories.flatMap((category) => category.items.map((entry) => entry.item.id)));
+  const normalizedSearchQuery = searchQuery?.trim();
+  const isSearching = Boolean(normalizedSearchQuery);
+  const emptyMessage = isSearching
+    ? "当前搜索没有匹配文章。请调整关键词或清除搜索。"
+    : "暂无内容。点击获取最新信息后，这里会显示该分类的热榜。";
   const citationHrefs = new Map(
     referenceItems.flatMap((item, index) =>
       renderedItemIds.has(item.id) ? ([[index + 1, `#${categoryArticleDomId(item)}`]] as Array<[number, string]>) : []
@@ -46,6 +52,14 @@ export function CategoryBoardWorkspace({ agentTasks, items, settings, sources }:
             <p className="mt-2 max-w-[72ch] text-sm leading-6 text-slate-600">
               按 AI、社区、工程、平台和中文技术聚合已抓取文章，先扫榜单，再打开原文。
             </p>
+            {isSearching ? (
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                <span className="rounded-md bg-teal-50 px-2 py-1 font-medium text-teal-700">搜索：{normalizedSearchQuery}</span>
+                <a className="rounded-md border border-slate-200 px-2 py-1 text-slate-600 hover:bg-slate-50" href="/">
+                  清除搜索
+                </a>
+              </div>
+            ) : null}
           </div>
           <div className="flex flex-wrap gap-2 text-xs text-slate-500">
             <span className="rounded-md bg-slate-100 px-2 py-1 font-mono">{board.totalItemCount} 条上榜</span>
@@ -69,7 +83,7 @@ export function CategoryBoardWorkspace({ agentTasks, items, settings, sources }:
       <section aria-label="分类榜单" className="grid gap-3 lg:grid-cols-2">
         {board.categories.map((category) => (
           <div id={category.id} key={category.id}>
-            <CategoryRankingCard category={category} />
+            <CategoryRankingCard category={category} emptyMessage={emptyMessage} />
           </div>
         ))}
       </section>

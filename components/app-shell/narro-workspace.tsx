@@ -30,7 +30,13 @@ export function NarroWorkspace({
         <TopBar searchQuery={searchQuery} summary={summary} />
 
         <div className="overflow-hidden rounded-md border border-slate-300/80 bg-slate-300/80">
-          <CategoryBoardWorkspace agentTasks={agentTasks} items={items} settings={settings} sources={sources} />
+          <CategoryBoardWorkspace
+            agentTasks={agentTasks}
+            items={items}
+            searchQuery={searchQuery}
+            settings={settings}
+            sources={sources}
+          />
         </div>
       </div>
     </div>

@@ -95,4 +95,45 @@ describe("Narro digest workspace", () => {
 
     await closeDatabase();
   }, 60000);
+
+  test("renders search context on the homepage", async () => {
+    process.env.NARRO_DB_URL = "file::memory:";
+    await closeDatabase();
+
+    const database = getDatabase();
+    await prepareDatabase(database);
+    await insertItemIfNew(
+      database,
+      {
+        id: "search-react-item",
+        sourceId: "react-blog",
+        title: "React compiler runtime update",
+        url: "https://example.com/react-compiler",
+        author: "React Blog",
+        publishedAt: "2026-05-22T08:30:00.000Z",
+        fetchedAt: "2026-05-22T09:00:00.000Z",
+        summary: "Compiler details for React developers.",
+        aiSummary: "",
+        language: "en",
+        tags: ["framework"],
+        entities: ["React"],
+        importanceScore: 88,
+        readStatus: "unread",
+        saved: false,
+        hidden: false,
+        reason: "test fixture",
+        actionLabels: ["打开原文"]
+      },
+      "react-compiler-1"
+    );
+
+    const { default: Home } = await import("@/app/page");
+    render(await Home({ searchParams: Promise.resolve({ q: "compiler" }) }));
+
+    const main = screen.getByRole("main", { name: "科技热榜" });
+    expect(within(main).getByText("搜索：compiler")).toBeInTheDocument();
+    expect(within(main).getByRole("link", { name: /React compiler runtime update/ })).toBeInTheDocument();
+
+    await closeDatabase();
+  }, 60000);
 });

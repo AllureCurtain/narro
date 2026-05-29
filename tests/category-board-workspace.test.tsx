@@ -125,4 +125,19 @@ describe("category board workspace", () => {
     expect(screen.getAllByText("暂无内容。点击获取最新信息后，这里会显示该分类的热榜。")).toHaveLength(5);
     expect(screen.getByText("还没有生成简报。")).toBeInTheDocument();
   });
+
+  test("shows search context and a clear link when filtering rankings", () => {
+    render(<CategoryBoardWorkspace agentTasks={[]} items={items} searchQuery="compiler" settings={{}} sources={sources} />);
+
+    const main = screen.getByRole("main", { name: "科技热榜" });
+    expect(within(main).getByText("搜索：compiler")).toBeInTheDocument();
+    expect(within(main).getByRole("link", { name: "清除搜索" })).toHaveAttribute("href", "/");
+  });
+
+  test("uses a search-specific empty state when filtered rankings have no results", () => {
+    render(<CategoryBoardWorkspace agentTasks={[]} items={[]} searchQuery="definitely-no-hit" settings={{}} sources={sources} />);
+
+    expect(screen.getAllByText("当前搜索没有匹配文章。请调整关键词或清除搜索。")).toHaveLength(5);
+    expect(screen.queryByText("暂无内容。点击获取最新信息后，这里会显示该分类的热榜。")).not.toBeInTheDocument();
+  });
 });
