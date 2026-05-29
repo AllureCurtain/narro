@@ -28,17 +28,14 @@ export function CategoryBoardWorkspace({ agentTasks, items, searchQuery, setting
   const boardItems = uniqueItemsById([...items, ...referenceItems]);
   const board = buildCategoryBoard({ items: boardItems, sources });
   const renderedItemIds = new Set(board.categories.flatMap((category) => category.items.map((entry) => entry.item.id)));
+  const fallbackReferenceItems = referenceItems.filter((item) => !renderedItemIds.has(item.id));
   const renderedItemIdList = [...renderedItemIds];
   const normalizedSearchQuery = searchQuery?.trim();
   const isSearching = Boolean(normalizedSearchQuery);
   const emptyMessage = isSearching
     ? "当前搜索没有匹配文章。请调整关键词或清除搜索。"
     : "暂无内容。点击获取最新信息后，这里会显示该分类的热榜。";
-  const citationHrefs = new Map(
-    referenceItems.flatMap((item, index) =>
-      renderedItemIds.has(item.id) ? ([[index + 1, `#${categoryArticleDomId(item)}`]] as Array<[number, string]>) : []
-    )
-  );
+  const citationHrefs = new Map(referenceItems.map((item, index) => [index + 1, `#${categoryArticleDomId(item)}`] as [number, string]));
 
   return (
     <main aria-label="科技热榜" className="grid gap-3 bg-[#f8fafc] p-3 sm:p-4">
@@ -102,7 +99,37 @@ export function CategoryBoardWorkspace({ agentTasks, items, searchQuery, setting
       </section>
 
       <section aria-label="简报工具" className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <DigestCard citationHrefs={citationHrefs} latestDigest={latestDigest} mode={digestMode} referenceItems={referenceItems} />
+        <div className="grid gap-3">
+          <DigestCard citationHrefs={citationHrefs} latestDigest={latestDigest} mode={digestMode} referenceItems={referenceItems} />
+          {fallbackReferenceItems.length > 0 ? (
+            <section aria-label="简报来源" className="rounded-md border border-slate-200 bg-white p-4">
+              <div className="mb-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">References</p>
+                <h2 className="mt-1 text-base font-semibold tracking-normal text-slate-950">简报来源</h2>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {fallbackReferenceItems.map((item) => {
+                  const source = sources.find((candidate) => candidate.id === item.sourceId);
+                  if (!source) return null;
+                  return (
+                    <article className="py-3" data-testid={categoryArticleDomId(item)} id={categoryArticleDomId(item)} key={item.id}>
+                      <a
+                        className="text-sm font-semibold text-slate-950 underline-offset-2 hover:underline"
+                        href={item.url}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        {item.title}
+                      </a>
+                      <p className="mt-1 text-[11px] leading-5 text-slate-500">{source.name}</p>
+                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-600">{item.summary}</p>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          ) : null}
+        </div>
         <div className="grid content-start gap-3">
           <DigestActionPanel />
           <ModelSettingsForm settings={settings} />

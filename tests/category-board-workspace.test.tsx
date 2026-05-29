@@ -148,4 +148,39 @@ describe("category board workspace", () => {
     expect(within(main).getByRole("button", { name: "标记当前榜单为已读" })).toBeInTheDocument();
     expect(within(main).getByDisplayValue("ai-1,community-1,engineering-1,platform-1,zh-1")).toHaveAttribute("name", "itemIds");
   });
+
+  test("keeps digest citations linked when referenced items are outside category top ten", () => {
+    const crowdedItems = [
+      ...Array.from({ length: 11 }, (_, index) =>
+        item({
+          id: `hn-crowded-${index}`,
+          sourceId: "hacker-news-rss",
+          title: `Crowded community story ${index}`,
+          importanceScore: 100 - index
+        })
+      ),
+      item({
+        id: "digest-only",
+        sourceId: "hacker-news-rss",
+        title: "Digest only reference",
+        importanceScore: 1
+      })
+    ];
+    const digestOnlyTask: AgentTask = {
+      ...digestTask,
+      input: JSON.stringify({
+        kind: "tech_digest",
+        label: "今日科技简报",
+        mode: "local",
+        referenceItemIds: ["digest-only"]
+      }),
+      output: "## 今日重点\n- [1] Digest only reference 仍然需要可回链。"
+    };
+
+    render(<CategoryBoardWorkspace agentTasks={[digestOnlyTask]} items={crowdedItems} settings={{}} sources={sources} />);
+
+    expect(screen.getByRole("link", { name: "查看引用 1" })).toHaveAttribute("href", "#article-digest-only");
+    expect(screen.getByRole("region", { name: "简报来源" })).toHaveTextContent("Digest only reference");
+    expect(screen.getByTestId("article-digest-only")).toBeInTheDocument();
+  });
 });
