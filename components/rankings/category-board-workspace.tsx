@@ -1,5 +1,6 @@
 import type { AgentTask, Item, RefreshLog, Source } from "@/lib/domain";
 import { markVisibleItemsReadAction } from "@/app/actions";
+import Link from "next/link";
 import { selectDigestEntries } from "@/lib/digest/source-pack";
 import { parseDigestTaskMode, parseDigestTaskReferenceIds } from "@/lib/digest/task-input";
 import { DigestActionPanel } from "@/components/digest/digest-action-panel";
@@ -55,9 +56,9 @@ export function CategoryBoardWorkspace({ agentTasks, items, refreshLogs, searchQ
             {isSearching ? (
               <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-600">
                 <span className="rounded-md bg-teal-50 px-2 py-1 font-medium text-teal-700">搜索：{normalizedSearchQuery}</span>
-                <a className="rounded-md border border-slate-200 px-2 py-1 text-slate-600 hover:bg-slate-50" href="/">
+                <Link className="rounded-md border border-slate-200 px-2 py-1 text-slate-600 hover:bg-slate-50" href="/">
                   清除搜索
-                </a>
+                </Link>
               </div>
             ) : null}
           </div>
