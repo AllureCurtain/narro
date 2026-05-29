@@ -27,6 +27,7 @@ export default async function Home({ searchParams }: HomeProps = {}) {
     <NarroWorkspace
       agentTasks={workspace.agentTasks}
       items={digestItems}
+      refreshLogs={workspace.refreshLogs}
       searchQuery={searchQuery}
       settings={workspace.settings}
       sources={workspace.sources}

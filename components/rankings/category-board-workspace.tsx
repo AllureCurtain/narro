@@ -1,4 +1,4 @@
-import type { AgentTask, Item, Source } from "@/lib/domain";
+import type { AgentTask, Item, RefreshLog, Source } from "@/lib/domain";
 import { markVisibleItemsReadAction } from "@/app/actions";
 import { selectDigestEntries } from "@/lib/digest/source-pack";
 import { parseDigestTaskMode, parseDigestTaskReferenceIds } from "@/lib/digest/task-input";
@@ -13,12 +13,13 @@ import { categoryArticleDomId } from "./category-ranking-row";
 interface CategoryBoardWorkspaceProps {
   agentTasks: AgentTask[];
   items: Item[];
+  refreshLogs?: RefreshLog[];
   searchQuery?: string;
   settings: Record<string, string>;
   sources: Source[];
 }
 
-export function CategoryBoardWorkspace({ agentTasks, items, searchQuery, settings, sources }: CategoryBoardWorkspaceProps) {
+export function CategoryBoardWorkspace({ agentTasks, items, refreshLogs, searchQuery, settings, sources }: CategoryBoardWorkspaceProps) {
   const latestDigest = agentTasks.find((task) => task.type === "daily_brief" && task.output);
   const digestMode = latestDigest ? parseDigestTaskMode(latestDigest.input) : undefined;
   const storedReferenceItemIds = latestDigest ? parseDigestTaskReferenceIds(latestDigest.input) : [];
@@ -39,7 +40,7 @@ export function CategoryBoardWorkspace({ agentTasks, items, searchQuery, setting
 
   return (
     <main aria-label="科技热榜" className="grid gap-3 bg-[#f8fafc] p-3 sm:p-4">
-      <SourceRefreshPanel />
+      <SourceRefreshPanel recentRefreshLogs={refreshLogs ?? []} />
 
       <section className="rounded-md border border-slate-200 bg-white p-4" aria-labelledby="ranking-board-heading">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">

@@ -1,6 +1,7 @@
 import type {
   AgentTask,
   Item,
+  RefreshLog,
   Source,
   WorkspaceSummary
 } from "@/lib/domain";
@@ -10,6 +11,7 @@ import { TopBar } from "./top-bar";
 interface NarroWorkspaceProps {
   agentTasks: AgentTask[];
   items: Item[];
+  refreshLogs?: RefreshLog[];
   searchQuery?: string;
   settings: Record<string, string>;
   sources: Source[];
@@ -19,6 +21,7 @@ interface NarroWorkspaceProps {
 export function NarroWorkspace({
   agentTasks,
   items,
+  refreshLogs = [],
   searchQuery,
   settings,
   sources,
@@ -33,6 +36,7 @@ export function NarroWorkspace({
           <CategoryBoardWorkspace
             agentTasks={agentTasks}
             items={items}
+            refreshLogs={refreshLogs}
             searchQuery={searchQuery}
             settings={settings}
             sources={sources}

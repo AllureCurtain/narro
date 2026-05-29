@@ -183,4 +183,31 @@ describe("category board workspace", () => {
     expect(screen.getByRole("region", { name: "简报来源" })).toHaveTextContent("Digest only reference");
     expect(screen.getByTestId("article-digest-only")).toBeInTheDocument();
   });
+
+  test("passes recent refresh status into the refresh panel", () => {
+    render(
+      <CategoryBoardWorkspace
+        agentTasks={[]}
+        items={items}
+        refreshLogs={[
+          {
+            id: "refresh-1",
+            sourceId: "react-blog",
+            sourceName: "React Blog",
+            ok: false,
+            fetchedCount: 0,
+            insertedCount: 0,
+            latencyMs: 90,
+            error: "HTTP 503",
+            createdAt: "2026-05-28T02:01:00.000Z"
+          }
+        ]}
+        settings={{}}
+        sources={sources}
+      />
+    );
+
+    expect(screen.getByText("最近刷新")).toBeInTheDocument();
+    expect(screen.getByText("失败源：React Blog")).toBeInTheDocument();
+  });
 });

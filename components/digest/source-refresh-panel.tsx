@@ -4,7 +4,7 @@ import { ArrowClockwise } from "@phosphor-icons/react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { refreshTechSourcesAction } from "@/app/actions";
-import type { DigestActionState } from "@/lib/domain";
+import type { DigestActionState, RefreshLog } from "@/lib/domain";
 import { DigestActionStatus } from "./digest-action-panel";
 
 const initialState: DigestActionState = {
@@ -12,7 +12,11 @@ const initialState: DigestActionState = {
   message: ""
 };
 
-export function SourceRefreshPanel() {
+interface SourceRefreshPanelProps {
+  recentRefreshLogs?: RefreshLog[];
+}
+
+export function SourceRefreshPanel({ recentRefreshLogs = [] }: SourceRefreshPanelProps) {
   const [state, formAction] = useActionState(refreshTechSourcesAction, initialState);
 
   return (
@@ -25,6 +29,7 @@ export function SourceRefreshPanel() {
         <RefreshButton />
       </div>
       <SourceRefreshStatus state={state} />
+      <RecentRefreshSummary logs={recentRefreshLogs} />
     </form>
   );
 }
@@ -47,4 +52,36 @@ function RefreshButton() {
       {pending ? "获取中" : "获取最新信息"}
     </button>
   );
+}
+
+function RecentRefreshSummary({ logs }: { logs: RefreshLog[] }) {
+  if (logs.length === 0) return null;
+
+  const successCount = logs.filter((log) => log.ok).length;
+  const failedLogs = logs.filter((log) => !log.ok);
+  const latest = logs[0];
+
+  return (
+    <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-semibold text-slate-800">最近刷新</span>
+        <span>
+          成功 {successCount} 个 / 失败 {failedLogs.length} 个
+        </span>
+        <span className="text-slate-500">{formatRefreshTime(latest.createdAt)}</span>
+      </div>
+      {failedLogs.length > 0 ? <p className="mt-1 text-amber-700">失败源：{failedLogs.map((log) => log.sourceName).join("、")}</p> : null}
+    </div>
+  );
+}
+
+function formatRefreshTime(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.valueOf())) return "unknown";
+  return new Intl.DateTimeFormat("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(date);
 }
